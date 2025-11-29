@@ -446,7 +446,8 @@
         },
         
         /**
-         * 渲染成就列表
+         * 渲染成就列表 - 改进的UI设计
+         * 左侧图标区域（圆形背景+图标），右侧文本区域（标题+进度）
          */
         renderAchievements() {
             elements.achievementsList.innerHTML = '';
@@ -457,15 +458,18 @@
                 achievementItem.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
                 
                 const achievementIconId = isUnlocked ? 'icon-trophy' : 'icon-lock';
+                const progress = Math.min(GameState.totalFishEarned, milestone);
+                const progressText = isUnlocked 
+                    ? '已完成' 
+                    : `进度: ${progress.toLocaleString()} / ${milestone.toLocaleString()}`;
+                
                 achievementItem.innerHTML = `
                     <div class="achievement-icon">
                         <svg class="icon icon--achievement"><use href="#${achievementIconId}"></use></svg>
                     </div>
                     <div class="achievement-content">
                         <div class="achievement-name">获得 ${milestone.toLocaleString()} 条鱼</div>
-                        <div class="achievement-description">
-                            ${isUnlocked ? '✅ 已完成！' : `进度: ${Math.min(GameState.totalFishEarned, milestone).toLocaleString()} / ${milestone.toLocaleString()}`}
-                        </div>
+                        <div class="achievement-description">${progressText}</div>
                     </div>
                 `;
                 
@@ -774,8 +778,12 @@
                     else if (item.id === 'shark') iconId = 'icon-fish-shark';
                     previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#${iconId}"></use></svg></div>`;
                 } else if (category === 'rodStyle') {
-                    // 鱼竿样式：显示鱼竿图标
-                    previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#icon-rod"></use></svg></div>`;
+                    // 鱼竿样式：根据不同的鱼竿类型使用不同的图标
+                    let rodIconId = 'icon-rod'; // 默认基础原木鱼竿
+                    if (item.id === 'golden') rodIconId = 'icon-rod-golden';
+                    else if (item.id === 'bamboo') rodIconId = 'icon-rod-bamboo';
+                    else if (item.id === 'crystal') rodIconId = 'icon-rod-crystal';
+                    previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#${rodIconId}"></use></svg></div>`;
                 } else if (category === 'background') {
                     // 背景：显示渐变预览
                     previewContent = `<div class="cosmetic-preview-bg" style="background: ${item.gradient};"></div>`;
@@ -829,11 +837,12 @@
 
         showPanel() {
             this.renderPanel();
-            elements.cosmeticsPanel.style.display = 'block';
+            // 使用PanelManager实现互斥切换和点击外部关闭
+            PanelManager.openPanel(elements.cosmeticsPanel);
         },
 
         hidePanel() {
-            elements.cosmeticsPanel.style.display = 'none';
+            PanelManager.closePanel(elements.cosmeticsPanel);
         }
     };
 
@@ -853,12 +862,15 @@
         },
 
         /**
-         * 显示里程碑弹窗
+         * 显示里程碑弹窗 - 重新设计的圆角药丸形状气泡
          */
         showBubble(threshold) {
             const bubble = document.createElement('div');
             bubble.className = 'milestone-bubble';
-            bubble.textContent = `猫猫现在每秒能钓到 ${threshold.toLocaleString()} 条鱼啦！`;
+            bubble.innerHTML = `
+                <svg class="icon milestone-bubble-icon"><use href="#icon-bolt"></use></svg>
+                <span>猫猫现在每秒能钓到 ${threshold.toLocaleString()} 条鱼啦！</span>
+            `;
             
             elements.milestoneBubbles.appendChild(bubble);
             
@@ -879,6 +891,77 @@
         }
     };
 
+    // ==================== 面板管理器 - 统一管理面板的打开/关闭 ====================
+    /**
+     * 面板管理器说明:
+     * - 实现面板互斥切换：打开一个面板时自动关闭另一个
+     * - 实现点击外部关闭：点击遮罩层时关闭当前打开的面板
+     * - 点击面板内容区域不会关闭面板
+     */
+    const PanelManager = {
+        currentPanel: null,
+        
+        /**
+         * 打开面板（自动关闭其他面板）
+         */
+        openPanel(panelElement) {
+            // 如果当前有其他面板打开，先关闭它
+            if (this.currentPanel && this.currentPanel !== panelElement) {
+                this.closePanel(this.currentPanel);
+            }
+            
+            // 打开新面板
+            this.currentPanel = panelElement;
+            panelElement.style.display = 'flex'; // 使用flex以支持遮罩层居中
+            
+            // 绑定点击外部关闭事件
+            this.bindOutsideClick(panelElement);
+        },
+        
+        /**
+         * 关闭面板
+         */
+        closePanel(panelElement) {
+            if (panelElement) {
+                panelElement.style.display = 'none';
+                // 移除事件监听器
+                const handler = panelElement._outsideClickHandler;
+                if (handler) {
+                    panelElement.removeEventListener('click', handler);
+                    delete panelElement._outsideClickHandler;
+                }
+            }
+            
+            if (this.currentPanel === panelElement) {
+                this.currentPanel = null;
+            }
+        },
+        
+        /**
+         * 绑定点击外部关闭事件
+         * 点击遮罩层（panel-overlay）时关闭，点击内容区域（panel-content）时不关闭
+         */
+        bindOutsideClick(panelElement) {
+            // 移除旧的事件监听器（如果存在）
+            const oldHandler = panelElement._outsideClickHandler;
+            if (oldHandler) {
+                panelElement.removeEventListener('click', oldHandler);
+            }
+            
+            // 创建新的事件处理函数
+            const handler = (e) => {
+                // 如果点击的是遮罩层本身（而不是内容区域），则关闭面板
+                if (e.target === panelElement) {
+                    this.closePanel(panelElement);
+                }
+            };
+            
+            // 保存引用以便后续移除
+            panelElement._outsideClickHandler = handler;
+            panelElement.addEventListener('click', handler);
+        }
+    };
+
     // ==================== 成就系统 ====================
     const AchievementManager = {
         /**
@@ -894,18 +977,18 @@
         },
         
         /**
-         * 显示成就面板
+         * 显示成就面板（使用PanelManager实现互斥切换）
          */
         showPanel() {
             UIRenderer.renderAchievements();
-            elements.achievementsPanel.style.display = 'block';
+            PanelManager.openPanel(elements.achievementsPanel);
         },
         
         /**
          * 隐藏成就面板
          */
         hidePanel() {
-            elements.achievementsPanel.style.display = 'none';
+            PanelManager.closePanel(elements.achievementsPanel);
         }
     };
 
@@ -1151,7 +1234,7 @@
         },
         
         /**
-         * 打开转生确认模态框
+         * 打开转生确认模态框（使用PanelManager支持点击外部关闭）
          */
         openPrestigeModal() {
             if (GameState.fish < GameConfig.PRESTIGE_FISH_REQUIREMENT) {
@@ -1164,14 +1247,15 @@
             const newStars = totalStarsFromEarned - GameState.seaStars;
             
             elements.prestigeModalStars.textContent = newStars;
-            elements.prestigeModal.style.display = 'flex';
+            // 使用PanelManager支持点击外部关闭
+            PanelManager.openPanel(elements.prestigeModal);
         },
         
         /**
          * 关闭转生确认模态框
          */
         closePrestigeModal() {
-            elements.prestigeModal.style.display = 'none';
+            PanelManager.closePanel(elements.prestigeModal);
         },
         
         /**
