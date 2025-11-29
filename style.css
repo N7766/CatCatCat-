@@ -1061,15 +1061,23 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
+/* 响应式网格布局 - 桌面3-4列，小屏2列 */
 .cosmetic-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: var(--spacing-sm);
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+}
+
+@media (min-width: 769px) {
+    .cosmetic-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        max-width: 100%;
+    }
 }
 
 /* 外观卡片 - 基础样式 */
 .cosmetic-card {
-    background: linear-gradient(135deg, rgba(176, 224, 230, 0.3) 0%, rgba(255, 182, 193, 0.3) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 250, 250, 0.9) 100%);
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
     border: 2px solid rgba(255, 182, 193, 0.3);
@@ -1077,64 +1085,161 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
     position: relative;
-    min-height: 110px;
+    min-height: 140px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--spacing-xs);
-    overflow: hidden;
+    overflow: visible;
+    box-shadow: var(--shadow-xs);
+}
+
+/* ========== 类别特定的强调色系统 ========== 
+ * 不同类别使用不同的强调色来区分视觉效果：
+ * - 鱼竿样式：绿色/黄色系
+ * - 鱼图标：蓝色/青色系
+ * - 背景：紫色/海军/海洋色调
+ * - 猫咪颜色：柔和的粉色系
+ * 这些类由JS在创建卡片时自动添加（cosmetic-card--rod, cosmetic-card--fish等）
+ */
+
+/* 类别特定的强调色 - 鱼竿样式：绿色/黄色 */
+.cosmetic-card--rod {
+    background: linear-gradient(135deg, rgba(154, 205, 50, 0.15) 0%, rgba(255, 215, 0, 0.15) 100%);
+    border-color: rgba(154, 205, 50, 0.4);
+}
+
+.cosmetic-card--rod:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(154, 205, 50, 0.25) 0%, rgba(255, 215, 0, 0.25) 100%);
+    border-color: rgba(154, 205, 50, 0.6);
+}
+
+/* 类别特定的强调色 - 鱼图标：蓝色/青色 */
+.cosmetic-card--fish {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.15) 0%, rgba(135, 206, 250, 0.15) 100%);
+    border-color: rgba(64, 224, 208, 0.4);
+}
+
+.cosmetic-card--fish:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.25) 0%, rgba(135, 206, 250, 0.25) 100%);
+    border-color: rgba(64, 224, 208, 0.6);
+}
+
+/* 类别特定的强调色 - 背景：紫色/海军/海洋色调 */
+.cosmetic-card--background {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(25, 25, 112, 0.15) 100%);
+    border-color: rgba(138, 43, 226, 0.4);
+}
+
+.cosmetic-card--background:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.25) 0%, rgba(25, 25, 112, 0.25) 100%);
+    border-color: rgba(138, 43, 226, 0.6);
+}
+
+/* 类别特定的强调色 - 猫咪颜色：保持柔和的粉色 */
+.cosmetic-card--cat {
+    background: linear-gradient(135deg, rgba(255, 182, 193, 0.15) 0%, rgba(255, 192, 203, 0.15) 100%);
+    border-color: rgba(255, 182, 193, 0.4);
+}
+
+.cosmetic-card--cat:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(255, 182, 193, 0.25) 0%, rgba(255, 192, 203, 0.25) 100%);
+    border-color: rgba(255, 182, 193, 0.6);
 }
 
 /* 悬停效果 - 仅对未锁定项生效 */
 .cosmetic-card:hover:not(.locked) {
     transform: translateY(-4px) scale(1.02);
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-dark);
-    background: linear-gradient(135deg, rgba(176, 224, 230, 0.5) 0%, rgba(255, 182, 193, 0.5) 100%);
 }
 
-/* 选中状态 - 增强的视觉反馈 */
+/* ========== 选中/锁定状态视觉反馈系统 ==========
+ * 选中状态：通过渐变边框、光晕效果和呼吸动画突出显示
+ * 锁定状态：通过去饱和度、降低不透明度和禁用交互来清晰区分
+ * 状态更新由CosmeticManager.select()方法控制，实时更新DOM中的selected类
+ */
+
+/* 选中状态 - 增强的视觉反馈（使用光晕效果） */
 .cosmetic-card.selected {
-    border: 3px solid var(--color-accent-gold);
-    box-shadow: 
-        0 0 15px rgba(255, 215, 0, 0.6),
-        0 4px 12px rgba(255, 182, 193, 0.4),
-        var(--shadow-md);
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 182, 193, 0.5) 100%);
+    position: relative;
+    border: 3px solid rgba(255, 215, 0, 0.9);
     transform: scale(1.05);
     animation: selectedPulse 2s ease-in-out infinite;
 }
 
-/* 选中状态的呼吸动画 */
+/* 类别特定的选中边框颜色 - 鱼竿：金色/绿色 */
+.cosmetic-card--rod.selected {
+    border-color: rgba(255, 215, 0, 0.9);
+    box-shadow: 
+        0 0 20px rgba(154, 205, 50, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.6),
+        0 4px 12px rgba(255, 182, 193, 0.4),
+        var(--shadow-md);
+}
+
+/* 类别特定的选中边框颜色 - 鱼图标：金色/青色 */
+.cosmetic-card--fish.selected {
+    border-color: rgba(255, 215, 0, 0.9);
+    box-shadow: 
+        0 0 20px rgba(64, 224, 208, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.6),
+        0 4px 12px rgba(255, 182, 193, 0.4),
+        var(--shadow-md);
+}
+
+/* 类别特定的选中边框颜色 - 背景：金色/紫色 */
+.cosmetic-card--background.selected {
+    border-color: rgba(255, 215, 0, 0.9);
+    box-shadow: 
+        0 0 20px rgba(138, 43, 226, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.6),
+        0 4px 12px rgba(255, 182, 193, 0.4),
+        var(--shadow-md);
+}
+
+/* 类别特定的选中边框颜色 - 猫咪：保持默认金色/粉色 */
+.cosmetic-card--cat.selected {
+    border-color: rgba(255, 215, 0, 0.9);
+}
+
+/* 选中状态的呼吸动画 - 光晕强度变化 */
 @keyframes selectedPulse {
     0%, 100% {
         box-shadow: 
-            0 0 15px rgba(255, 215, 0, 0.6),
+            0 0 25px rgba(255, 215, 0, 0.6),
             0 4px 12px rgba(255, 182, 193, 0.4),
             var(--shadow-md);
     }
     50% {
         box-shadow: 
-            0 0 20px rgba(255, 215, 0, 0.8),
+            0 0 35px rgba(255, 215, 0, 0.8),
             0 4px 16px rgba(255, 182, 193, 0.5),
             var(--shadow-lg);
     }
 }
 
-/* 锁定状态 - 统一的视觉样式 */
+/* 锁定状态 - 统一的视觉样式（去饱和度和降低不透明度） */
 .cosmetic-card.locked {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%);
     border-color: var(--color-border);
     position: relative;
+    filter: grayscale(0.6);
+}
+
+/* 锁定项内的图标也应用去饱和度 */
+.cosmetic-card.locked .cosmetic-icon,
+.cosmetic-card.locked .cosmetic-preview,
+.cosmetic-card.locked .cosmetic-preview-bg {
+    filter: grayscale(0.8) opacity(0.7);
 }
 
 /* 锁定项悬停时不显示交互效果 */
 .cosmetic-card.locked:hover {
     transform: none;
-    box-shadow: none;
+    box-shadow: var(--shadow-xs);
     border-color: var(--color-border);
 }
 
@@ -1145,72 +1250,153 @@ body {
 
 @keyframes shakeLocked {
     0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-    20%, 40%, 60%, 80% { transform: translateX(3px); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
 }
 
 /* 预览圆圈 - 统一尺寸 */
 .cosmetic-preview {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     border: 2px solid rgba(255, 182, 193, 0.5);
     flex-shrink: 0;
     box-shadow: var(--shadow-xs);
+    margin-bottom: var(--spacing-xs);
 }
 
 /* 背景渐变预览 */
 .cosmetic-preview-bg {
-    width: 100%;
-    height: 48px;
+    width: calc(100% - 8px);
+    height: 56px;
     border-radius: var(--radius-sm);
     border: 2px solid rgba(255, 182, 193, 0.3);
     flex-shrink: 0;
     box-shadow: var(--shadow-xs);
+    margin-bottom: var(--spacing-xs);
 }
 
-/* 图标 - 统一大小和对齐 */
+/* ========== 图标溢出修复系统 ==========
+ * 确保所有SVG图标完全可见，不会被裁剪：
+ * - 容器设置明确的宽高和overflow: visible
+ * - SVG图标使用固定尺寸，留有足够的内边距
+ * - 使用currentColor通过CSS类控制图标颜色
+ */
+
+/* 图标容器 - 修复溢出问题，确保图标完全可见 */
 .cosmetic-icon {
-    font-size: 36px;
-    line-height: 1;
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 48px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    margin-bottom: var(--spacing-xs);
+    overflow: visible;
+    position: relative;
 }
 
-/* 名称文本 */
+/* 图标内的SVG - 确保完全可见 */
+.cosmetic-icon .icon {
+    width: 48px;
+    height: 48px;
+    overflow: visible;
+    display: block;
+}
+
+/* 类别特定的图标颜色 - 鱼竿：绿色/黄色 */
+.cosmetic-card--rod .cosmetic-icon {
+    color: #9ACD32;
+}
+
+.cosmetic-card--rod .cosmetic-icon .icon {
+    filter: drop-shadow(0 2px 4px rgba(154, 205, 50, 0.3));
+}
+
+/* 类别特定的图标颜色 - 鱼图标：蓝色/青色 */
+.cosmetic-card--fish .cosmetic-icon {
+    color: #40E0D0;
+}
+
+.cosmetic-card--fish.selected .cosmetic-icon {
+    color: #00CED1;
+}
+
+.cosmetic-card--fish .cosmetic-icon .icon {
+    filter: drop-shadow(0 2px 4px rgba(64, 224, 208, 0.3));
+}
+
+/* 类别特定的图标颜色 - 背景：紫色 */
+.cosmetic-card--background .cosmetic-icon {
+    color: #8A2BE2;
+}
+
+.cosmetic-card--background .cosmetic-icon .icon {
+    filter: drop-shadow(0 2px 4px rgba(138, 43, 226, 0.3));
+}
+
+/* 类别特定的图标颜色 - 猫咪：粉色 */
+.cosmetic-card--cat .cosmetic-icon {
+    color: #FFB6C1;
+}
+
+.cosmetic-card--cat .cosmetic-icon .icon {
+    filter: drop-shadow(0 2px 4px rgba(255, 182, 193, 0.3));
+}
+
+/* 名称文本 - 居中对齐，允许最多2行 */
 .cosmetic-name {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
-    line-height: 1.3;
+    line-height: 1.4;
+    text-align: center;
     word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    width: 100%;
+    margin-top: auto;
+    padding-top: var(--spacing-xs);
 }
 
-/* 锁定图标 - 统一位置和样式 */
+/* 锁定图标 - 统一位置和样式（圆形徽章） */
 .lock-icon {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    font-size: 18px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 10;
-    opacity: 0.8;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(4px);
 }
 
-/* 解锁条件文本 */
+.lock-icon .icon {
+    width: 14px;
+    height: 14px;
+    color: white;
+    opacity: 1;
+}
+
+/* 解锁条件文本 - 视觉上更轻 */
 .cosmetic-requirement {
-    font-size: var(--font-size-xs);
+    font-size: 11px;
     color: var(--color-text-light);
-    margin-top: auto;
+    margin-top: var(--spacing-xs);
     text-align: center;
     line-height: 1.3;
     padding-top: var(--spacing-xs);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
     width: 100%;
+    opacity: 0.8;
 }
 
 /* 猫咪颜色样式 */
@@ -1402,7 +1588,40 @@ body {
 /* 响应式：移动端外观面板 */
 @media (max-width: 768px) {
     .cosmetic-grid {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+    
+    .cosmetic-card {
+        min-height: 130px;
+        padding: var(--spacing-sm);
+    }
+    
+    .cosmetic-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .cosmetic-icon .icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .cosmetic-preview {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .cosmetic-preview-bg {
+        height: 48px;
+    }
+    
+    .cosmetic-name {
+        font-size: 11px;
+    }
+    
+    .cosmetic-requirement {
+        font-size: 10px;
     }
     
     .modal-content {

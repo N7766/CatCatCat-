@@ -740,7 +740,26 @@
                 card.setAttribute('data-category', category);
                 card.setAttribute('data-id', item.id);
                 
-                card.className = `cosmetic-card ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+                /* 添加类别特定的CSS类，用于应用不同的强调色和样式
+                 * 这些类名对应CSS中的类别特定样式规则：
+                 * - cosmetic-card--rod: 绿色/黄色强调色（鱼竿样式）
+                 * - cosmetic-card--fish: 蓝色/青色强调色（鱼图标）
+                 * - cosmetic-card--background: 紫色/海军色强调色（背景）
+                 * - cosmetic-card--cat: 粉色强调色（猫咪颜色）
+                 * CSS会根据这些类应用不同的渐变背景、边框颜色和图标颜色
+                 */
+                let categoryClass = '';
+                if (category === 'rodStyle') {
+                    categoryClass = 'cosmetic-card--rod';
+                } else if (category === 'fishIcon') {
+                    categoryClass = 'cosmetic-card--fish';
+                } else if (category === 'background') {
+                    categoryClass = 'cosmetic-card--background';
+                } else if (category === 'catColor') {
+                    categoryClass = 'cosmetic-card--cat';
+                }
+                
+                card.className = `cosmetic-card ${categoryClass} ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
                 
                 // 根据类别生成不同的预览内容
                 let previewContent = '';
