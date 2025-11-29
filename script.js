@@ -176,11 +176,11 @@
                 }
             },
             
-            // 收藏家纪念章：一次性购买，永久解锁某些稀有外观
+            // 收藏家纪念章：一次性购买，永久解锁某些稀有外观和特殊氛围效果
             collectorBadge: {
                 id: 'collectorBadge',
                 name: '收藏家纪念章',
-                description: '永久解锁稀有外观选项',
+                description: '永久解锁稀有外观选项和特殊视觉氛围效果（星空猫、彩虹猫、极光之夜、梦境海湾等）',
                 baseCost: 5,
                 purchased: false,  // 一次性购买标志
                 getCost: function() {
@@ -442,9 +442,11 @@
             const fishDef = CosmeticDefinitions.fishIcons.find(f => f.id === currentFishIcon);
             let iconId = 'icon-fish'; // 默认经典小鲤鱼
             if (fishDef) {
-                if (fishDef.id === 'koi') iconId = 'icon-fish-koi';
+                if (fishDef.id === 'default') iconId = 'icon-fish';
+                else if (fishDef.id === 'koi') iconId = 'icon-fish-koi';
                 else if (fishDef.id === 'puffer') iconId = 'icon-fish-puffer';
                 else if (fishDef.id === 'shark') iconId = 'icon-fish-shark';
+                else if (fishDef.id === 'dragon') iconId = 'icon-fish-dragon'; // 神秘龙鱼
             }
             
             fishIcon.innerHTML = `<svg class="icon icon--fish-animation"><use href="#${iconId}"></use></svg>`;
@@ -689,25 +691,35 @@
             { id: 'pink', name: '粉红猫', color: '#FFB6C1', requirement: { type: 'default' } },
             { id: 'blue', name: '蓝色猫', color: '#87CEEB', requirement: { type: 'totalFish', value: 2000 } },
             { id: 'orange', name: '橙色猫', color: '#FFA500', requirement: { type: 'totalFish', value: 8000 } },
-            { id: 'purple', name: '紫色猫', color: '#DA70D6', requirement: { type: 'achievement', value: 10000 } }
+            { id: 'purple', name: '紫色猫', color: '#DA70D6', requirement: { type: 'achievement', value: 10000 } },
+            // 收藏家纪念章解锁的稀有猫咪颜色
+            { id: 'starry', name: '星空猫', color: '#4B0082', requirement: { type: 'collectorMedal' }, isRare: true },
+            { id: 'rainbow', name: '彩虹猫', color: '#FF1493', requirement: { type: 'collectorMedal' }, isRare: true, hasAmbientEffect: true }
         ],
         rodStyles: [
             { id: 'default', name: '基础原木鱼竿', requirement: { type: 'default' } },
             { id: 'golden', name: '闪耀金鱼竿', requirement: { type: 'upgradeLevel', upgrade: 'clickPower', value: 10 } },
             { id: 'bamboo', name: '翠绿竹鱼竿', requirement: { type: 'upgradeLevel', upgrade: 'autoFishing', value: 8 } },
-            { id: 'crystal', name: '水晶透明鱼竿', requirement: { type: 'seaStars', value: 3 } }
+            { id: 'crystal', name: '水晶透明鱼竿', requirement: { type: 'seaStars', value: 3 } },
+            // 收藏家纪念章解锁的稀有鱼竿
+            { id: 'cosmic', name: '宇宙鱼竿', requirement: { type: 'collectorMedal' }, isRare: true }
         ],
         fishIcons: [
             { id: 'default', name: '经典小鲤鱼', icon: '🐟', requirement: { type: 'default' } },
             { id: 'koi', name: '幸运锦鲤', icon: '🐠', requirement: { type: 'totalFish', value: 6000 } },
             { id: 'puffer', name: '可爱河豚', icon: '🐡', requirement: { type: 'upgradeLevel', upgrade: 'luckyFish', value: 5 } },
-            { id: 'shark', name: '凶猛小鲨鱼', icon: '🦈', requirement: { type: 'dpsMilestone', value: 100 } }
+            { id: 'shark', name: '凶猛小鲨鱼', icon: '🦈', requirement: { type: 'dpsMilestone', value: 100 } },
+            // 收藏家纪念章解锁的稀有鱼图标
+            { id: 'dragon', name: '神秘龙鱼', icon: '🐉', requirement: { type: 'collectorMedal' }, isRare: true }
         ],
         backgrounds: [
             { id: 'day', name: '柔和晨光', gradient: 'linear-gradient(135deg, #FFF5EE 0%, #E0F2F5 50%, #B0E0E6 100%)', requirement: { type: 'default' } },
             { id: 'sunset', name: '绚丽晚霞', gradient: 'linear-gradient(135deg, #FFE4B5 0%, #FFB6C1 50%, #FF8C69 100%)', requirement: { type: 'totalFish', value: 15000 } },
             { id: 'night', name: '神秘星空', gradient: 'linear-gradient(135deg, #191970 0%, #4B0082 50%, #000000 100%)', requirement: { type: 'upgradeLevel', upgrade: 'clickPower', value: 20 } },
-            { id: 'ocean', name: '深邃海洋', gradient: 'linear-gradient(135deg, #001F3F 0%, #0074D9 50%, #7FDBFF 100%)', requirement: { type: 'totalFish', value: 50000 } }
+            { id: 'ocean', name: '深邃海洋', gradient: 'linear-gradient(135deg, #001F3F 0%, #0074D9 50%, #7FDBFF 100%)', requirement: { type: 'totalFish', value: 50000 } },
+            // 收藏家纪念章解锁的稀有背景（带氛围效果）
+            { id: 'aurora', name: '极光之夜', gradient: 'linear-gradient(135deg, #0F0C29 0%, #302B63 30%, #24243e 60%, #0F0C29 100%)', requirement: { type: 'collectorMedal' }, isRare: true, hasAmbientEffect: true },
+            { id: 'dream', name: '梦境海湾', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)', requirement: { type: 'collectorMedal' }, isRare: true, hasAmbientEffect: true }
         ]
     };
 
@@ -755,6 +767,10 @@
             }
             if (requirement.type === 'dpsMilestone') {
                 return GameState.unlockedDpsMilestones.has(requirement.value);
+            }
+            // 检查收藏家纪念章需求
+            if (requirement.type === 'collectorMedal') {
+                return GameState.starUpgrades.collectorBadge && GameState.starUpgrades.collectorBadge.purchased === true;
             }
             return false;
         },
@@ -819,16 +835,26 @@
             elements.fishingRod.className = 'fishing-rod';
             elements.fishingRod.classList.add(`rod-${rodStyle}`);
             
-            // 应用鱼图标 - 使用SVG图标
+            // 应用鱼图标 - 使用实心填充SVG图标（主屏幕专用）
+            // 这些图标采用实心填充风格，与猫咪的扁平风格保持一致
             const fishDef = CosmeticDefinitions.fishIcons.find(f => f.id === fishIcon);
             if (fishDef) {
-                // 根据鱼类型选择对应的SVG图标
-                let iconId = 'icon-fish'; // 默认
-                if (fishDef.id === 'koi') iconId = 'icon-fish-koi';
-                else if (fishDef.id === 'puffer') iconId = 'icon-fish-puffer';
-                else if (fishDef.id === 'shark') iconId = 'icon-fish-shark';
+                // 根据鱼类型选择对应的实心填充SVG图标
+                // 映射关系：
+                // - default -> icon-main-fish-koi (经典小鲤鱼)
+                // - koi -> icon-main-fish-koi-lucky (幸运锦鲤)
+                // - puffer -> icon-main-fish-puffer (可爱河豚)
+                // - shark -> icon-main-fish-shark (凶猛小鲨鱼)
+                // - dragon -> icon-main-fish-dragon (神秘龙鱼)
+                let iconId = 'icon-main-fish-koi'; // 默认经典小鲤鱼
+                if (fishDef.id === 'default') iconId = 'icon-main-fish-koi';
+                else if (fishDef.id === 'koi') iconId = 'icon-main-fish-koi-lucky';
+                else if (fishDef.id === 'puffer') iconId = 'icon-main-fish-puffer';
+                else if (fishDef.id === 'shark') iconId = 'icon-main-fish-shark';
+                else if (fishDef.id === 'dragon') iconId = 'icon-main-fish-dragon'; // 神秘龙鱼
                 
-                elements.rodHook.innerHTML = `<svg class="icon icon--hook"><use href="#${iconId}"></use></svg>`;
+                // 使用main-fish-icon类确保正确的尺寸和颜色
+                elements.rodHook.innerHTML = `<svg class="icon icon--hook main-fish-icon"><use href="#${iconId}"></use></svg>`;
             }
             
             // 应用背景
@@ -836,6 +862,9 @@
             if (bgDef) {
                 elements.body.style.background = bgDef.gradient;
             }
+            
+            // 通知氛围效果管理器更新活动效果
+            AmbientEffectsManager.updateActiveEffects(catColor, background);
         },
 
         /**
@@ -864,17 +893,31 @@
                 `[data-category="${category}"]`
             );
             
-            // 移除所有卡片的selected类
+            // 移除所有卡片的selected类和checkmark
             categoryCards.forEach(card => {
                 card.classList.remove('selected');
+                // 移除现有的checkmark
+                const existingCheckmark = card.querySelector('.cosmetic-checkmark');
+                if (existingCheckmark) {
+                    existingCheckmark.remove();
+                }
             });
             
-            // 为当前选中的卡片添加selected类
+            // 为当前选中的卡片添加selected类和checkmark
             const selectedCard = elements.cosmeticsList.querySelector(
                 `[data-category="${category}"][data-id="${id}"]`
             );
             if (selectedCard) {
                 selectedCard.classList.add('selected');
+                // 检查卡片是否已解锁（不应该有lock-icon）
+                const isUnlocked = !selectedCard.classList.contains('locked');
+                if (isUnlocked) {
+                    // 添加checkmark
+                    const checkmark = document.createElement('div');
+                    checkmark.className = 'cosmetic-checkmark';
+                    checkmark.innerHTML = '<svg class="icon icon--checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+                    selectedCard.appendChild(checkmark);
+                }
             }
             
             // 应用外观并保存
@@ -961,18 +1004,50 @@
                     // 猫咪颜色：显示颜色圆圈
                     previewContent = `<div class="cosmetic-preview" style="background: ${item.color};"></div>`;
                 } else if (category === 'fishIcon') {
-                    // 鱼图标：使用SVG图标
-                    let iconId = 'icon-fish'; // 默认
-                    if (item.id === 'koi') iconId = 'icon-fish-koi';
-                    else if (item.id === 'puffer') iconId = 'icon-fish-puffer';
-                    else if (item.id === 'shark') iconId = 'icon-fish-shark';
+                    // 鱼图标：使用SVG图标，并添加鱼类型特定的CSS类
+                    let iconId = 'icon-fish'; // 默认经典小鲤鱼
+                    let fishTypeClass = 'fish-card--koi-basic'; // 默认经典小鲤鱼
+                    
+                    if (item.id === 'default') {
+                        iconId = 'icon-fish';
+                        fishTypeClass = 'fish-card--koi-basic';
+                    } else if (item.id === 'koi') {
+                        iconId = 'icon-fish-koi';
+                        fishTypeClass = 'fish-card--koi-lucky';
+                    } else if (item.id === 'puffer') {
+                        iconId = 'icon-fish-puffer';
+                        fishTypeClass = 'fish-card--puffer';
+                    } else if (item.id === 'shark') {
+                        iconId = 'icon-fish-shark';
+                        fishTypeClass = 'fish-card--shark';
+                    } else if (item.id === 'dragon') {
+                        iconId = 'icon-fish-dragon'; // 使用新的神秘龙鱼图标
+                        fishTypeClass = 'fish-card--dragon';
+                    }
+                    
+                    // 添加鱼类型特定的CSS类
+                    card.className += ` ${fishTypeClass}`;
                     previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#${iconId}"></use></svg></div>`;
                 } else if (category === 'rodStyle') {
-                    // 鱼竿样式：根据不同的鱼竿类型使用不同的图标
+                    // 鱼竿样式：根据不同的鱼竿类型使用不同的图标和样式类
                     let rodIconId = 'icon-rod'; // 默认基础原木鱼竿
-                    if (item.id === 'golden') rodIconId = 'icon-rod-golden';
-                    else if (item.id === 'bamboo') rodIconId = 'icon-rod-bamboo';
-                    else if (item.id === 'crystal') rodIconId = 'icon-rod-crystal';
+                    let rodTypeClass = 'rod-card--basic'; // 默认基础类型
+                    if (item.id === 'golden') {
+                        rodIconId = 'icon-rod-golden';
+                        rodTypeClass = 'rod-card--gold';
+                    } else if (item.id === 'bamboo') {
+                        rodIconId = 'icon-rod-bamboo';
+                        rodTypeClass = 'rod-card--bamboo';
+                    } else if (item.id === 'crystal') {
+                        rodIconId = 'icon-rod-crystal';
+                        rodTypeClass = 'rod-card--crystal';
+                    } else if (item.id === 'cosmic') {
+                        // 宇宙鱼竿使用全新的 cosmic SVG 图标
+                        rodIconId = 'icon-rod-cosmic';
+                        rodTypeClass = 'rod-card--cosmic';
+                    }
+                    // 添加鱼竿类型特定的CSS类
+                    card.className += ` ${rodTypeClass}`;
                     previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#${rodIconId}"></use></svg></div>`;
                 } else if (category === 'background') {
                     // 背景：显示渐变预览
@@ -982,9 +1057,19 @@
                 const lockIconHtml = !isUnlocked 
                     ? '<div class="lock-icon"><svg class="icon icon--lock"><use href="#icon-lock"></use></svg></div>'
                     : '';
+                // 选中状态的checkmark图标（仅对解锁且选中的项显示）
+                const checkmarkHtml = (isUnlocked && isSelected)
+                    ? '<div class="cosmetic-checkmark"><svg class="icon icon--checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>'
+                    : '';
+                // 稀有徽章（收藏家纪念章解锁的物品）
+                const rareBadgeHtml = item.isRare 
+                    ? '<div class="cosmetic-rare-badge">稀有</div>'
+                    : '';
                 card.innerHTML = `
                     ${previewContent}
                     <div class="cosmetic-name">${item.name}</div>
+                    ${rareBadgeHtml}
+                    ${checkmarkHtml}
                     ${lockIconHtml}
                     ${!isUnlocked ? `<div class="cosmetic-requirement">${this.getRequirementText(item.requirement)}</div>` : ''}
                 `;
@@ -1022,6 +1107,7 @@
             if (requirement.type === 'achievement') return `累计 ${requirement.value.toLocaleString()} 条鱼`;
             if (requirement.type === 'seaStars') return `获得 ${requirement.value} 颗海星`;
             if (requirement.type === 'dpsMilestone') return `每秒 ${requirement.value} 条鱼`;
+            if (requirement.type === 'collectorMedal') return '需要收藏家纪念章';
             return '';
         },
 
@@ -1033,6 +1119,192 @@
 
         hidePanel() {
             PanelManager.closePanel(elements.cosmeticsPanel);
+        }
+    };
+
+    // ==================== 氛围效果管理器 ====================
+    /**
+     * 氛围效果管理器说明:
+     * - 管理稀有化妆品激活时的特殊视觉效果
+     * - 支持背景动画（如极光之夜的光带、星星闪烁）
+     * - 支持小动物偶尔经过（如小鸟、小鱼、螃蟹）
+     * - 根据当前选中的化妆品动态激活/停用效果
+     */
+    const AmbientEffectsManager = {
+        activeEffects: {
+            backgroundAnimation: null,
+            animalSpawner: null
+        },
+        
+        /**
+         * 更新活动效果 - 根据当前选中的化妆品
+         */
+        updateActiveEffects(catColor, background) {
+            // 清除所有现有效果
+            this.clearAllEffects();
+            
+            // 检查收藏家纪念章是否已购买
+            const hasCollectorMedal = GameState.starUpgrades.collectorBadge && 
+                                   GameState.starUpgrades.collectorBadge.purchased === true;
+            
+            if (!hasCollectorMedal) {
+                return; // 没有收藏家纪念章，不激活任何效果
+            }
+            
+            // 检查背景是否有氛围效果
+            const bgDef = CosmeticDefinitions.backgrounds.find(b => b.id === background);
+            if (bgDef && bgDef.hasAmbientEffect) {
+                this.activateBackgroundEffect(background);
+            }
+            
+            // 检查猫咪颜色是否有氛围效果（会生成小动物）
+            const catDef = CosmeticDefinitions.catColors.find(c => c.id === catColor);
+            if (catDef && catDef.hasAmbientEffect) {
+                this.activateAnimalSpawner(catColor);
+            }
+            
+            // 检查背景是否有小动物效果
+            if (bgDef && bgDef.hasAmbientEffect) {
+                // 某些背景也会生成小动物
+                if (background === 'dream') {
+                    this.activateAnimalSpawner('dream');
+                }
+            }
+        },
+        
+        /**
+         * 激活背景动画效果
+         */
+        activateBackgroundEffect(backgroundId) {
+            if (backgroundId === 'aurora') {
+                // 极光之夜：添加极光光带动画层
+                this.createAuroraLayer();
+            } else if (backgroundId === 'dream') {
+                // 梦境海湾：添加梦境光晕效果
+                this.createDreamLayer();
+            }
+        },
+        
+        /**
+         * 创建极光动画层
+         */
+        createAuroraLayer() {
+            const auroraLayer = document.createElement('div');
+            auroraLayer.id = 'ambient-aurora-layer';
+            auroraLayer.className = 'ambient-aurora-layer';
+            document.body.appendChild(auroraLayer);
+            this.activeEffects.backgroundAnimation = auroraLayer;
+        },
+        
+        /**
+         * 创建梦境光晕层
+         */
+        createDreamLayer() {
+            const dreamLayer = document.createElement('div');
+            dreamLayer.id = 'ambient-dream-layer';
+            dreamLayer.className = 'ambient-dream-layer';
+            document.body.appendChild(dreamLayer);
+            this.activeEffects.backgroundAnimation = dreamLayer;
+        },
+        
+        /**
+         * 激活小动物生成器
+         */
+        activateAnimalSpawner(source) {
+            // 清除旧的生成器
+            if (this.activeEffects.animalSpawner) {
+                clearInterval(this.activeEffects.animalSpawner);
+            }
+            
+            // 创建新的生成器
+            const spawnInterval = 3000 + Math.random() * 5000; // 3-8秒随机间隔
+            this.activeEffects.animalSpawner = setInterval(() => {
+                this.spawnAnimal(source);
+            }, spawnInterval);
+            
+            // 立即生成一个
+            setTimeout(() => this.spawnAnimal(source), 1000);
+        },
+        
+        /**
+         * 生成小动物
+         */
+        spawnAnimal(source) {
+            // 使用body作为容器，因为小动物需要跨越整个屏幕
+            const container = document.body;
+            if (!container) return;
+            
+            // 限制同时存在的动物数量（最多3个）
+            const existingAnimals = container.querySelectorAll('.ambient-animal');
+            if (existingAnimals.length >= 3) return;
+            
+            const animal = document.createElement('div');
+            animal.className = 'ambient-animal';
+            
+            // 根据来源选择动物类型
+            let animalType = 'bird'; // 默认小鸟
+            if (source === 'rainbow') {
+                // 彩虹猫：生成小鸟
+                animalType = 'bird';
+            } else if (source === 'dream') {
+                // 梦境海湾：随机生成小鸟或小鱼
+                animalType = Math.random() > 0.5 ? 'bird' : 'fish';
+            }
+            
+            animal.classList.add(`ambient-animal--${animalType}`);
+            
+            // 设置随机起始位置和方向
+            const startY = 20 + Math.random() * 60; // 20%-80%高度
+            const direction = Math.random() > 0.5 ? 'left' : 'right';
+            const duration = 3000 + Math.random() * 2000; // 3-5秒
+            
+            animal.style.setProperty('--start-y', `${startY}%`);
+            animal.style.setProperty('--direction', direction === 'left' ? '-1' : '1');
+            animal.style.setProperty('--duration', `${duration}ms`);
+            
+            // 设置初始位置（从屏幕外开始）
+            if (direction === 'left') {
+                animal.style.left = '100%';
+            } else {
+                animal.style.left = '-50px';
+            }
+            
+            // 添加点击事件（可选：点击获得小奖励）
+            animal.addEventListener('click', () => {
+                GameState.fish += 1;
+                UIRenderer.updateFishCount();
+                animal.remove();
+            });
+            
+            container.appendChild(animal);
+            
+            // 动画结束后移除
+            setTimeout(() => {
+                if (animal.parentNode) {
+                    animal.remove();
+                }
+            }, duration + 500);
+        },
+        
+        /**
+         * 清除所有效果
+         */
+        clearAllEffects() {
+            // 清除背景动画层
+            if (this.activeEffects.backgroundAnimation) {
+                this.activeEffects.backgroundAnimation.remove();
+                this.activeEffects.backgroundAnimation = null;
+            }
+            
+            // 清除小动物生成器
+            if (this.activeEffects.animalSpawner) {
+                clearInterval(this.activeEffects.animalSpawner);
+                this.activeEffects.animalSpawner = null;
+            }
+            
+            // 清除所有现有小动物
+            const existingAnimals = document.body.querySelectorAll('.ambient-animal');
+            existingAnimals.forEach(animal => animal.remove());
         }
     };
 
@@ -1440,12 +1712,300 @@
      * - excited: 兴奋脸 (大眼睛,大笑嘴,腮红) - 高DPS或频繁点击时触发
      * - crit: 暴击脸 (超大眼睛,张大嘴,星星眼) - 暴击时短暂显示0.5秒
      */
+    // ==================== 眼睛瞥视控制器 ====================
+    /**
+     * 眼睛瞥视控制器说明:
+     * 
+     * 功能:
+     * - 让猫咪的眼睛偶尔瞥向鼠标方向
+     * - 大多数时间眼睛保持中性位置（居中）
+     * - 每3-8秒随机触发一次瞥视，持续0.5-1秒后返回中性位置
+     * 
+     * 实现细节:
+     * - 使用CatFollowController的鼠标位置信息
+     * - 通过transform: translate移动瞳孔
+     * - 使用requestAnimationFrame实现平滑插值
+     */
+    const EyeGlanceController = {
+        leftEye: null,
+        rightEye: null,
+        leftPupil: null,
+        rightPupil: null,
+        catCenter: { x: 0, y: 0 },
+        mainContent: null,
+        
+        // 状态
+        isGlancing: false,
+        glanceTarget: { x: 0, y: 0 },
+        currentPupilOffset: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
+        targetPupilOffset: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
+        
+        // 配置
+        config: {
+            maxOffset: 6,           // 瞳孔最大偏移距离（像素）
+            glanceInterval: { min: 3000, max: 8000 },  // 瞥视间隔（毫秒）
+            glanceDuration: { min: 500, max: 1000 },    // 瞥视持续时间（毫秒）
+            lerpFactor: 0.2,        // 插值因子
+            isTouchDevice: false
+        },
+        
+        nextGlanceTime: 0,
+        glanceTimeout: null,
+        rafId: null,
+        
+        /**
+         * 初始化眼睛瞥视控制器
+         */
+        init() {
+            this.leftEye = document.querySelector('.cat-eye-left');
+            this.rightEye = document.querySelector('.cat-eye-right');
+            this.leftPupil = this.leftEye?.querySelector('.cat-pupil');
+            this.rightPupil = this.rightEye?.querySelector('.cat-pupil');
+            this.mainContent = document.querySelector('.main-content');
+            
+            if (!this.leftEye || !this.rightEye || !this.leftPupil || !this.rightPupil || !this.mainContent) {
+                console.warn('眼睛瞥视控制器初始化失败: 缺少必要的DOM元素');
+                return;
+            }
+            
+            // 检测触摸设备
+            this.config.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (this.config.isTouchDevice) {
+                // 触摸设备可以偶尔随机瞥视
+                this.scheduleRandomGlance();
+                return;
+            }
+            
+            // 计算猫咪中心位置（相对于main-content）
+            this.updateCatCenter();
+            
+            // 绑定鼠标移动事件（复用CatFollowController的鼠标位置）
+            this.mainContent.addEventListener('mousemove', (e) => {
+                this.handleMouseMove(e);
+            });
+            
+            // 启动动画循环
+            this.startAnimationLoop();
+            
+            // 安排第一次瞥视
+            this.scheduleNextGlance();
+        },
+        
+        /**
+         * 更新猫咪中心位置
+         */
+        updateCatCenter() {
+            const catElement = document.getElementById('cat');
+            if (!catElement) return;
+            
+            const catRect = catElement.getBoundingClientRect();
+            const mainRect = this.mainContent.getBoundingClientRect();
+            
+            this.catCenter.x = catRect.left - mainRect.left + catRect.width / 2;
+            this.catCenter.y = catRect.top - mainRect.top + catRect.height / 2;
+        },
+        
+        /**
+         * 处理鼠标移动（用于计算瞥视方向）
+         */
+        handleMouseMove(e) {
+            if (this.isGlancing) return; // 瞥视中不更新
+            
+            const mainRect = this.mainContent.getBoundingClientRect();
+            const mouseX = e.clientX - mainRect.left;
+            const mouseY = e.clientY - mainRect.top;
+            
+            // 存储鼠标位置供瞥视时使用
+            this.mousePosition = { x: mouseX, y: mouseY };
+        },
+        
+        /**
+         * 安排下一次瞥视
+         */
+        scheduleNextGlance() {
+            const now = Date.now();
+            const interval = this.config.glanceInterval.min + 
+                Math.random() * (this.config.glanceInterval.max - this.config.glanceInterval.min);
+            this.nextGlanceTime = now + interval;
+            
+            this.glanceTimeout = setTimeout(() => {
+                this.triggerGlance();
+            }, interval);
+        },
+        
+        /**
+         * 触发瞥视
+         */
+        triggerGlance() {
+            if (this.isGlancing) return;
+            
+            this.isGlancing = true;
+            
+            // 更新猫咪中心位置
+            this.updateCatCenter();
+            
+            // 计算瞥视方向
+            let dx = 0, dy = 0;
+            
+            if (this.config.isTouchDevice || !this.mousePosition) {
+                // 触摸设备或无鼠标位置：随机方向
+                const angle = Math.random() * Math.PI * 2;
+                dx = Math.cos(angle);
+                dy = Math.sin(angle);
+            } else {
+                // 计算从猫咪中心到鼠标的方向
+                dx = this.mousePosition.x - this.catCenter.x;
+                dy = this.mousePosition.y - this.catCenter.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    dx /= distance;
+                    dy /= distance;
+                } else {
+                    // 距离为0，使用随机方向
+                    const angle = Math.random() * Math.PI * 2;
+                    dx = Math.cos(angle);
+                    dy = Math.sin(angle);
+                }
+            }
+            
+            // 设置目标偏移（限制在最大偏移内）
+            this.targetPupilOffset.left.x = dx * this.config.maxOffset;
+            this.targetPupilOffset.left.y = dy * this.config.maxOffset;
+            this.targetPupilOffset.right.x = dx * this.config.maxOffset;
+            this.targetPupilOffset.right.y = dy * this.config.maxOffset;
+            
+            // 添加瞥视类
+            this.leftEye.classList.add('glancing');
+            this.rightEye.classList.add('glancing');
+            
+            // 持续一段时间后返回中性位置
+            const duration = this.config.glanceDuration.min + 
+                Math.random() * (this.config.glanceDuration.max - this.config.glanceDuration.min);
+            
+            setTimeout(() => {
+                this.returnToNeutral();
+            }, duration);
+        },
+        
+        /**
+         * 返回中性位置
+         */
+        returnToNeutral() {
+            this.targetPupilOffset.left = { x: 0, y: 0 };
+            this.targetPupilOffset.right = { x: 0, y: 0 };
+            
+            setTimeout(() => {
+                this.isGlancing = false;
+                this.leftEye.classList.remove('glancing');
+                this.rightEye.classList.remove('glancing');
+                
+                // 安排下一次瞥视
+                this.scheduleNextGlance();
+            }, 500); // 给返回动画一些时间
+        },
+        
+        /**
+         * 触摸设备：随机瞥视
+         */
+        scheduleRandomGlance() {
+            const interval = this.config.glanceInterval.min + 
+                Math.random() * (this.config.glanceInterval.max - this.config.glanceInterval.min);
+            
+            setTimeout(() => {
+                this.triggerGlance();
+            }, interval);
+        },
+        
+        /**
+         * 启动动画循环
+         */
+        startAnimationLoop() {
+            const update = () => {
+                // 插值瞳孔位置
+                this.currentPupilOffset.left.x = this.lerp(
+                    this.currentPupilOffset.left.x,
+                    this.targetPupilOffset.left.x,
+                    this.config.lerpFactor
+                );
+                this.currentPupilOffset.left.y = this.lerp(
+                    this.currentPupilOffset.left.y,
+                    this.targetPupilOffset.left.y,
+                    this.config.lerpFactor
+                );
+                this.currentPupilOffset.right.x = this.lerp(
+                    this.currentPupilOffset.right.x,
+                    this.targetPupilOffset.right.x,
+                    this.config.lerpFactor
+                );
+                this.currentPupilOffset.right.y = this.lerp(
+                    this.currentPupilOffset.right.y,
+                    this.targetPupilOffset.right.y,
+                    this.config.lerpFactor
+                );
+                
+                // 应用transform
+                if (this.leftPupil) {
+                    this.leftPupil.style.transform = 
+                        `translate(${this.currentPupilOffset.left.x}px, ${this.currentPupilOffset.left.y}px)`;
+                }
+                if (this.rightPupil) {
+                    this.rightPupil.style.transform = 
+                        `translate(${this.currentPupilOffset.right.x}px, ${this.currentPupilOffset.right.y}px)`;
+                }
+                
+                this.rafId = requestAnimationFrame(update);
+            };
+            
+            this.rafId = requestAnimationFrame(update);
+        },
+        
+        /**
+         * 线性插值函数
+         */
+        lerp(start, end, factor) {
+            return start + (end - start) * factor;
+        },
+        
+        /**
+         * 清理资源
+         */
+        cleanup() {
+            if (this.glanceTimeout) {
+                clearTimeout(this.glanceTimeout);
+            }
+            if (this.rafId) {
+                cancelAnimationFrame(this.rafId);
+            }
+        }
+    };
+
+    // ==================== 猫咪表情管理器 ====================
+    /**
+     * 猫咪表情管理器说明:
+     * 
+     * 功能:
+     * - 管理猫咪的各种表情状态
+     * - 根据游戏状态（点击频率、DPS、时间）自动切换表情
+     * - 支持随机表情（blink、curious等）
+     * 
+     * 表情类型:
+     * - idle_normal: 默认开心脸
+     * - idle_sleepy: 困倦脸 - 10秒无点击时触发
+     * - excited: 兴奋脸 - 高DPS或频繁点击时触发
+     * - crit: 暴击脸 - 暴击时短暂显示0.5秒
+     * - blink: 眨眼 - 随机触发，持续150-200ms
+     * - curious: 好奇 - 随机触发，持续1秒
+     * - smile_big: 大笑 - 随机触发，持续0.8秒
+     */
     const CatExpressionManager = {
         currentExpression: 'idle_normal',
         lastClickTime: Date.now(),
         clickHistory: [], // 记录最近点击时间,用于计算点击频率
         critTimeout: null, // 暴击表情的定时器
         updateInterval: null, // 定期更新表情的定时器
+        randomExpressionTimeout: null, // 随机表情的定时器
+        nextRandomExpressionTime: 0, // 下一次随机表情的时间
         
         /**
          * 初始化表情管理器
@@ -1458,24 +2018,112 @@
             this.updateInterval = setInterval(() => {
                 this.updateOnTick();
             }, 500);
+            
+            // 安排随机表情
+            this.scheduleRandomExpression();
+        },
+        
+        /**
+         * 安排随机表情（blink、curious等）
+         */
+        scheduleRandomExpression() {
+            // 清除之前的定时器
+            if (this.randomExpressionTimeout) {
+                clearTimeout(this.randomExpressionTimeout);
+            }
+            
+            // 随机间隔：4-12秒
+            const interval = 4000 + Math.random() * 8000;
+            this.nextRandomExpressionTime = Date.now() + interval;
+            
+            this.randomExpressionTimeout = setTimeout(() => {
+                this.triggerRandomExpression();
+            }, interval);
+        },
+        
+        /**
+         * 触发随机表情
+         */
+        triggerRandomExpression() {
+            // 如果当前是crit或sleepy，不触发随机表情
+            if (this.currentExpression === 'crit' || this.currentExpression === 'idle_sleepy') {
+                this.scheduleRandomExpression();
+                return;
+            }
+            
+            // 随机选择表情类型
+            const rand = Math.random();
+            let expression, duration;
+            
+            if (rand < 0.4) {
+                // 40%概率：眨眼
+                expression = 'blink';
+                duration = 150 + Math.random() * 50; // 150-200ms
+            } else if (rand < 0.7) {
+                // 30%概率：好奇
+                expression = 'curious';
+                duration = 1000; // 1秒
+            } else {
+                // 30%概率：大笑
+                expression = 'smile_big';
+                duration = 800; // 0.8秒
+            }
+            
+            // 设置表情
+            this.setExpression(expression, duration);
+            
+            // 安排下一次随机表情
+            this.scheduleRandomExpression();
         },
         
         /**
          * 设置表情
-         * @param {string} expression - 表情类型: 'idle_normal' | 'idle_sleepy' | 'excited' | 'crit'
+         * @param {string} expression - 表情类型
+         * @param {number} durationMs - 持续时间（毫秒），如果提供，会在时间后自动恢复
          */
-        setExpression(expression) {
+        setExpression(expression, durationMs = null) {
             // 移除所有表情类
             elements.cat.classList.remove(
                 'cat--idle-normal',
                 'cat--idle-sleepy',
                 'cat--excited',
-                'cat--crit'
+                'cat--crit',
+                'cat--blink',
+                'cat--curious',
+                'cat--smile-big'
             );
             
             // 添加新表情类
             elements.cat.classList.add(`cat--${expression}`);
             this.currentExpression = expression;
+            
+            // 如果指定了持续时间，自动恢复
+            if (durationMs && durationMs > 0) {
+                setTimeout(() => {
+                    // 根据当前状态决定恢复为什么表情
+                    if (this.currentExpression === expression) {
+                        this.revertToAppropriateExpression();
+                    }
+                }, durationMs);
+            }
+        },
+        
+        /**
+         * 恢复到合适的基础表情
+         */
+        revertToAppropriateExpression() {
+            const now = Date.now();
+            const timeSinceLastClick = (now - this.lastClickTime) / 1000;
+            const clickRate = this.getClickRate();
+            const dps = UpgradeCalculator.calculateActualPerSecond();
+            
+            if (timeSinceLastClick >= 10) {
+                this.setExpression('idle_sleepy');
+            } else if (clickRate >= 3 || dps >= 50) {
+                this.setExpression('excited');
+            } else {
+                this.setExpression('idle_normal');
+            }
         },
         
         /**
@@ -1587,6 +2235,9 @@
             }
             if (this.critTimeout) {
                 clearTimeout(this.critTimeout);
+            }
+            if (this.randomExpressionTimeout) {
+                clearTimeout(this.randomExpressionTimeout);
             }
         }
     };
@@ -2119,6 +2770,9 @@
             // 初始化猫咪表情管理器
             CatExpressionManager.init();
             
+            // 初始化眼睛瞥视控制器
+            EyeGlanceController.init();
+            
             // 初始化事件管理器（金色鱼和提示气泡）
             EventManager.init();
             
@@ -2343,8 +2997,16 @@
                 GameState.seaStars -= cost;
                 item.purchased = true;
                 
-                // 收藏家纪念章可以解锁某些外观（这里可以扩展）
-                // 目前只是标记为已购买
+                // 收藏家纪念章购买后，检查并解锁稀有外观
+                CosmeticManager.checkUnlocks();
+                
+                // 如果外观面板已打开，重新渲染以显示新解锁的稀有外观
+                if (elements.cosmeticsPanel.style.display !== 'none') {
+                    CosmeticManager.renderPanel();
+                }
+                
+                // 更新氛围效果（如果已选中稀有外观）
+                CosmeticManager.applyCosmetics();
                 
                 SoundManager.playUpgradeSound();
                 UIRenderer.updateSeaStars();

@@ -78,6 +78,44 @@
     height: 1.5em;
 }
 
+/* ========== 主屏幕鱼图标样式 ==========
+ * 用于显示在钓鱼竿钩子下方的实心填充鱼图标
+ * 确保图标清晰可见，与猫咪的扁平风格保持一致
+ * 
+ * 图标定义位置：HTML SVG sprite中的 icon-main-fish-* symbols
+ * 颜色映射：通过CSS的color属性控制，使用currentColor填充
+ * 每个鱼类型映射：
+ *   - default -> icon-main-fish-koi (经典小鲤鱼)
+ *   - koi -> icon-main-fish-koi-lucky (幸运锦鲤)
+ *   - puffer -> icon-main-fish-puffer (可爱河豚)
+ *   - shark -> icon-main-fish-shark (凶猛小鲨鱼)
+ *   - dragon -> icon-main-fish-dragon (神秘龙鱼)
+ */
+.main-fish-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    margin: 0 auto;
+    color: #1E3A5F; /* 深海军蓝，确保在所有背景下（白天、日落、夜晚）都有良好对比度 */
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* 确保钩子容器正确居中和对齐 */
+.rod-hook {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px; /* 添加内边距防止图标被裁剪 */
+    overflow: visible; /* 确保图标完全可见 */
+}
+
+/* 钩子内的SVG图标容器 */
+.rod-hook .icon {
+    width: 20px;
+    height: 20px;
+    overflow: visible;
+}
+
 /* 鱼动画图标 */
 .icon--fish-animation {
     width: 2em;
@@ -417,7 +455,7 @@ body {
     height: 200px;
 }
 
-/* 猫咪耳朵 */
+/* 猫咪耳朵 - 支持动画变换 */
 .cat-ear {
     position: absolute;
     width: 0;
@@ -426,6 +464,8 @@ body {
     border-right: 25px solid transparent;
     border-bottom: 50px solid var(--color-primary);
     top: -30px;
+    transform-origin: center bottom; /* 以底部中心为旋转点 */
+    transition: transform 0.2s ease;
 }
 
 .cat-ear-left {
@@ -461,7 +501,7 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-/* 猫咪眼睛 */
+/* 猫咪眼睛 - 容器 */
 .cat-eye {
     position: absolute;
     width: 30px;
@@ -469,7 +509,10 @@ body {
     background: #000;
     border-radius: 50%;
     top: 70px;
-    animation: blink 3s infinite;
+    overflow: hidden; /* 确保瞳孔不会超出眼睛边界 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cat-eye-left {
@@ -480,9 +523,30 @@ body {
     right: 60px;
 }
 
-@keyframes blink {
-    0%, 90%, 100% { height: 40px; }
-    95% { height: 5px; }
+/* 瞳孔 - 可以在眼睛内移动 */
+.cat-pupil {
+    width: 12px;
+    height: 12px;
+    background: #FFF;
+    border-radius: 50%;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translate(0, 0); /* 默认居中 */
+}
+
+/* 眼睛瞥视状态 - 瞳孔移动到边缘 */
+.cat-eye.glancing .cat-pupil {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 眨眼动画 - 通过改变眼睛高度实现 */
+.cat-eye.blinking {
+    animation: blinkAnimation 0.2s ease-in-out;
+}
+
+@keyframes blinkAnimation {
+    0%, 100% { height: 40px; }
+    50% { height: 5px; }
 }
 
 /* 猫咪鼻子 */
@@ -574,7 +638,16 @@ body {
     opacity: 0;
 }
 
-/* idle_sleepy: 困倦脸 - 半闭眼睛,下垂眉毛,小嘴 */
+/* idle_normal: 耳朵直立 */
+.cat--idle-normal .cat-ear-left {
+    transform: rotate(-20deg);
+}
+
+.cat--idle-normal .cat-ear-right {
+    transform: rotate(20deg);
+}
+
+/* idle_sleepy: 困倦脸 - 半闭眼睛,下垂眉毛,小嘴,耳朵下垂 */
 .cat--idle-sleepy .cat-eye {
     width: 30px;
     height: 8px;
@@ -608,7 +681,16 @@ body {
     opacity: 0;
 }
 
-/* excited: 兴奋脸 - 大眼睛,大笑嘴,腮红 */
+/* idle_sleepy: 耳朵下垂 */
+.cat--idle-sleepy .cat-ear-left {
+    transform: rotate(-10deg) translateY(5px);
+}
+
+.cat--idle-sleepy .cat-ear-right {
+    transform: rotate(10deg) translateY(5px);
+}
+
+/* excited: 兴奋脸 - 大眼睛,大笑嘴,腮红,耳朵竖起 */
 .cat--excited .cat-eye {
     width: 35px;
     height: 45px;
@@ -631,6 +713,27 @@ body {
 
 .cat--excited .cat-eyebrow {
     opacity: 0;
+}
+
+/* excited: 耳朵竖起并轻微弹跳 */
+.cat--excited .cat-ear-left {
+    transform: rotate(-25deg) translateY(-3px);
+    animation: earBounceLeft 1s ease-in-out infinite;
+}
+
+.cat--excited .cat-ear-right {
+    transform: rotate(25deg) translateY(-3px);
+    animation: earBounceRight 1s ease-in-out infinite 0.1s;
+}
+
+@keyframes earBounceLeft {
+    0%, 100% { transform: rotate(-25deg) translateY(-3px); }
+    50% { transform: rotate(-25deg) translateY(-5px); }
+}
+
+@keyframes earBounceRight {
+    0%, 100% { transform: rotate(25deg) translateY(-3px); }
+    50% { transform: rotate(25deg) translateY(-5px); }
 }
 
 /* crit: 暴击脸 - 超大眼睛,张大嘴,明显腮红,星星眼效果 */
@@ -671,6 +774,81 @@ body {
         transform: scale(1.1);
         box-shadow: 0 0 25px rgba(255, 215, 0, 1);
     }
+}
+
+/* crit: 耳朵更竖起 */
+.cat--crit .cat-ear-left {
+    transform: rotate(-30deg) translateY(-5px);
+}
+
+.cat--crit .cat-ear-right {
+    transform: rotate(30deg) translateY(-5px);
+}
+
+/* ========== 新增表情样式 ========== */
+
+/* blink: 眨眼 - 眼睛闭合 */
+.cat--blink .cat-eye {
+    height: 5px;
+    animation: none;
+}
+
+.cat--blink .cat-pupil {
+    opacity: 0;
+}
+
+/* curious: 好奇 - 眼睛稍大,眉毛上扬,耳朵前倾 */
+.cat--curious .cat-eye {
+    width: 32px;
+    height: 42px;
+    top: 68px;
+}
+
+.cat--curious .cat-eyebrow {
+    opacity: 1;
+    transform: rotate(-10deg);
+    top: 55px;
+}
+
+.cat--curious .cat-eyebrow-left {
+    transform: rotate(-10deg);
+}
+
+.cat--curious .cat-eyebrow-right {
+    transform: rotate(10deg);
+}
+
+.cat--curious .cat-mouth {
+    width: 38px;
+    height: 18px;
+}
+
+/* curious: 耳朵前倾（向内倾斜） */
+.cat--curious .cat-ear-left {
+    transform: rotate(-15deg) translateX(3px);
+}
+
+.cat--curious .cat-ear-right {
+    transform: rotate(15deg) translateX(-3px);
+}
+
+/* smile_big: 大笑 - 更大的嘴,明显腮红 */
+.cat--smile-big .cat-eye {
+    width: 32px;
+    height: 38px;
+}
+
+.cat--smile-big .cat-mouth {
+    width: 55px;
+    height: 28px;
+    border-radius: 0 0 55px 55px;
+    top: 118px;
+}
+
+.cat--smile-big .cat-blush {
+    opacity: 1;
+    width: 32px;
+    height: 22px;
 }
 
 /* 钓鱼竿 - 基础摆动动画 */
@@ -1606,6 +1784,12 @@ body {
         height: 38px;
         top: 49px;
     }
+    
+    /* 响应式：瞳孔尺寸调整 */
+    .cat-pupil {
+        width: 9px;
+        height: 9px;
+    }
 
     .shop {
         padding: var(--spacing-lg);
@@ -1763,19 +1947,24 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
-/* 响应式网格布局 - 桌面3-4列，小屏2列 */
+/* 响应式网格布局 - 桌面2-3列，小屏2列，确保鱼竿卡片有足够空间 */
 .cosmetic-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: var(--spacing-md);
 }
 
 @media (min-width: 769px) {
     .cosmetic-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         max-width: 100%;
     }
 }
+
+/* 鱼竿样式部分的特殊网格布局（更宽的卡片）
+ * 注意：使用通用的网格布局，JS会在创建时添加特定类
+ * 如果需要，可以通过JS动态调整grid-template-columns
+ */
 
 /* 外观卡片 - 基础样式 */
 .cosmetic-card {
@@ -1787,14 +1976,20 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
     position: relative;
-    min-height: 140px;
+    min-height: 160px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     overflow: visible;
     box-shadow: var(--shadow-xs);
+}
+
+/* 鱼竿卡片稍微高一点，以容纳更多装饰效果 */
+.cosmetic-card--rod {
+    min-height: 170px;
+    padding: var(--spacing-md) var(--spacing-sm);
 }
 
 /* ========== 类别特定的强调色系统 ========== 
@@ -1806,7 +2001,8 @@ body {
  * 这些类由JS在创建卡片时自动添加（cosmetic-card--rod, cosmetic-card--fish等）
  */
 
-/* 类别特定的强调色 - 鱼竿样式：绿色/黄色 */
+/* ========== 鱼竿样式卡片基础样式 ========== */
+/* 类别特定的强调色 - 鱼竿样式：绿色/黄色（作为基础色） */
 .cosmetic-card--rod {
     background: linear-gradient(135deg, rgba(154, 205, 50, 0.15) 0%, rgba(255, 215, 0, 0.15) 100%);
     border-color: rgba(154, 205, 50, 0.4);
@@ -1817,6 +2013,311 @@ body {
     border-color: rgba(154, 205, 50, 0.6);
 }
 
+/* ========== 每种鱼竿类型的独特视觉设计 ========== */
+
+/* 基础原木鱼竿 - 自然木质风格，暖色调 */
+.rod-card--basic {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.12) 0%, rgba(101, 67, 33, 0.15) 100%);
+    border-color: rgba(139, 69, 19, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.rod-card--basic::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(139, 69, 19, 0.1), transparent);
+    animation: woodGrain 3s ease-in-out infinite;
+}
+
+@keyframes woodGrain {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: -100%; }
+}
+
+.rod-card--basic:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.2) 0%, rgba(101, 67, 33, 0.22) 100%);
+    border-color: rgba(139, 69, 19, 0.6);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+}
+
+.rod-card--basic .cosmetic-icon {
+    color: #8B4513;
+    filter: drop-shadow(0 2px 4px rgba(139, 69, 19, 0.4));
+}
+
+/* 闪耀金鱼竿 - 金色主题，带闪烁和光晕效果 */
+.rod-card--gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);
+    border-color: rgba(255, 215, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.rod-card--gold::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+    animation: goldShimmer 2s linear infinite;
+}
+
+@keyframes goldShimmer {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.rod-card--gold::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    background: #FFD700;
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px rgba(255, 215, 0, 0.8),
+        0 0 16px rgba(255, 215, 0, 0.6),
+        12px 12px 0 0 rgba(255, 215, 0, 0.4),
+        -8px 20px 0 0 rgba(255, 215, 0, 0.3);
+    animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.rod-card--gold:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.3) 100%);
+    border-color: rgba(255, 215, 0, 0.8);
+    box-shadow: 
+        0 4px 12px rgba(255, 215, 0, 0.4),
+        0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.rod-card--gold .cosmetic-icon {
+    color: #FFD700;
+    filter: drop-shadow(0 2px 6px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 12px rgba(255, 215, 0, 0.4));
+}
+
+/* 翠绿竹鱼竿 - 竹节纹理，绿色主题，带叶子装饰 */
+.rod-card--bamboo {
+    background: linear-gradient(135deg, rgba(154, 205, 50, 0.18) 0%, rgba(107, 142, 35, 0.18) 100%);
+    border-color: rgba(154, 205, 50, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 竹节纹理效果 */
+.rod-card--bamboo::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        repeating-linear-gradient(
+            transparent,
+            transparent 12px,
+            rgba(107, 142, 35, 0.15) 12px,
+            rgba(107, 142, 35, 0.15) 14px
+        );
+    pointer-events: none;
+}
+
+/* 叶子装饰 */
+.rod-card--bamboo::after {
+    content: '🍃';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 14px;
+    opacity: 0.6;
+    animation: leafSway 2s ease-in-out infinite;
+}
+
+@keyframes leafSway {
+    0%, 100% { transform: rotate(-5deg) translateY(0); }
+    50% { transform: rotate(5deg) translateY(-2px); }
+}
+
+.rod-card--bamboo:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(154, 205, 50, 0.28) 0%, rgba(107, 142, 35, 0.28) 100%);
+    border-color: rgba(154, 205, 50, 0.7);
+    box-shadow: 0 4px 12px rgba(154, 205, 50, 0.4);
+}
+
+.rod-card--bamboo .cosmetic-icon {
+    color: #9ACD32;
+    filter: drop-shadow(0 2px 4px rgba(154, 205, 50, 0.5));
+}
+
+/* 水晶透明鱼竿 - 透明玻璃质感，带折射光和内部光晕 */
+.rod-card--crystal {
+    background: linear-gradient(135deg, rgba(232, 244, 248, 0.3) 0%, rgba(176, 224, 230, 0.25) 100%);
+    border-color: rgba(176, 224, 230, 0.5);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(2px);
+}
+
+/* 折射光效果 */
+.rod-card--crystal::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        135deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 60%
+    );
+    animation: crystalRefraction 3s ease-in-out infinite;
+}
+
+@keyframes crystalRefraction {
+    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0.3; }
+    50% { transform: translate(-50%, -50%) rotate(180deg); opacity: 0.7; }
+}
+
+/* 内部光晕 */
+.rod-card--crystal::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation: crystalGlow 2s ease-in-out infinite;
+}
+
+@keyframes crystalGlow {
+    0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.rod-card--crystal:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(232, 244, 248, 0.4) 0%, rgba(176, 224, 230, 0.35) 100%);
+    border-color: rgba(176, 224, 230, 0.8);
+    box-shadow: 
+        0 4px 12px rgba(176, 224, 230, 0.4),
+        0 0 20px rgba(255, 255, 255, 0.3),
+        inset 0 0 20px rgba(176, 224, 230, 0.2);
+}
+
+.rod-card--crystal .cosmetic-icon {
+    color: #B0E0E6;
+    filter: drop-shadow(0 2px 6px rgba(176, 224, 230, 0.6)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* 宇宙鱼竿 - 深空主题，带星云、星星和轨道效果 */
+.rod-card--cosmic {
+    background: linear-gradient(135deg, rgba(75, 0, 130, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
+    border-color: rgba(138, 43, 226, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 星云背景 */
+.rod-card--cosmic::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(138, 43, 226, 0.3) 0%,
+        rgba(75, 0, 130, 0.2) 40%,
+        transparent 70%
+    );
+    transform: translate(-50%, -50%);
+    animation: nebulaFlow 4s ease-in-out infinite;
+}
+
+@keyframes nebulaFlow {
+    0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); opacity: 0.8; }
+}
+
+/* 星星装饰 */
+.rod-card--cosmic::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 3px;
+    height: 3px;
+    background: #FFD700;
+    border-radius: 50%;
+    box-shadow: 
+        0 0 6px rgba(255, 215, 0, 0.8),
+        8px 15px 0 1px rgba(255, 255, 255, 0.6),
+        -6px 22px 0 1px rgba(255, 215, 0, 0.5),
+        15px 8px 0 1px rgba(255, 255, 255, 0.4);
+    animation: starTwinkle 2s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* 轨道线装饰（使用伪元素无法实现多个，用背景图案代替） */
+.rod-card--cosmic {
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.3) 1px, transparent 1px),
+        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(75, 0, 130, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%;
+}
+
+.rod-card--cosmic:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(75, 0, 130, 0.35) 0%, rgba(138, 43, 226, 0.35) 100%);
+    border-color: rgba(138, 43, 226, 0.9);
+    box-shadow: 
+        0 4px 16px rgba(138, 43, 226, 0.5),
+        0 0 30px rgba(255, 215, 0, 0.3),
+        0 0 40px rgba(138, 43, 226, 0.4);
+}
+
+.rod-card--cosmic .cosmetic-icon {
+    color: #9370DB;
+    filter: drop-shadow(0 2px 8px rgba(138, 43, 226, 0.7)) drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
+    /* 宇宙鱼竿图标的轻微呼吸光晕，让稀有感更柔和而不刺眼 */
+    animation: cosmicIconGlow 3s ease-in-out infinite;
+}
+
+@keyframes cosmicIconGlow {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 2px 6px rgba(138, 43, 226, 0.5)) drop-shadow(0 0 10px rgba(255, 215, 0, 0.4));
+    }
+    50% {
+        transform: scale(1.04);
+        filter: drop-shadow(0 3px 9px rgba(138, 43, 226, 0.75)) drop-shadow(0 0 14px rgba(255, 215, 0, 0.6));
+    }
+}
+
+/* ========== 鱼图标卡片基础样式 ========== */
 /* 类别特定的强调色 - 鱼图标：蓝色/青色 */
 .cosmetic-card--fish {
     background: linear-gradient(135deg, rgba(64, 224, 208, 0.15) 0%, rgba(135, 206, 250, 0.15) 100%);
@@ -1826,6 +2327,264 @@ body {
 .cosmetic-card--fish:hover:not(.locked) {
     background: linear-gradient(135deg, rgba(64, 224, 208, 0.25) 0%, rgba(135, 206, 250, 0.25) 100%);
     border-color: rgba(64, 224, 208, 0.6);
+}
+
+/* ========== 每种鱼类型的独特视觉设计 ========== */
+
+/* 经典小鲤鱼 - 柔和的青蓝色调，简单圆润 */
+.fish-card--koi-basic {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.18) 0%, rgba(135, 206, 250, 0.18) 100%);
+    border-color: rgba(64, 224, 208, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.fish-card--koi-basic::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(64, 224, 208, 0.1) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation: gentlePulse 3s ease-in-out infinite;
+}
+
+@keyframes gentlePulse {
+    0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.fish-card--koi-basic:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.28) 0%, rgba(135, 206, 250, 0.28) 100%);
+    border-color: rgba(64, 224, 208, 0.7);
+    box-shadow: 0 4px 12px rgba(64, 224, 208, 0.4);
+}
+
+.fish-card--koi-basic .cosmetic-icon {
+    color: #40E0D0;
+    filter: drop-shadow(0 2px 4px rgba(64, 224, 208, 0.4));
+}
+
+/* 幸运锦鲤 - 金色+青色配色，带幸运元素 */
+.fish-card--koi-lucky {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.2) 0%, rgba(255, 215, 0, 0.15) 100%);
+    border-color: rgba(255, 215, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.fish-card--koi-lucky::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 215, 0, 0.2) 50%, transparent 70%);
+    animation: luckyShimmer 3s linear infinite;
+}
+
+@keyframes luckyShimmer {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.fish-card--koi-lucky::after {
+    content: '✨';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 12px;
+    opacity: 0.7;
+    animation: starTwinkle 2s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.fish-card--koi-lucky:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(64, 224, 208, 0.3) 0%, rgba(255, 215, 0, 0.25) 100%);
+    border-color: rgba(255, 215, 0, 0.8);
+    box-shadow: 
+        0 4px 12px rgba(255, 215, 0, 0.4),
+        0 0 20px rgba(64, 224, 208, 0.3);
+}
+
+.fish-card--koi-lucky .cosmetic-icon {
+    color: #40E0D0;
+    filter: drop-shadow(0 2px 6px rgba(255, 215, 0, 0.5)) drop-shadow(0 0 10px rgba(64, 224, 208, 0.4));
+}
+
+/* 可爱河豚 - 粉色/橙色系，圆润可爱 */
+.fish-card--puffer {
+    background: linear-gradient(135deg, rgba(255, 182, 193, 0.2) 0%, rgba(255, 160, 122, 0.2) 100%);
+    border-color: rgba(255, 182, 193, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.fish-card--puffer::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 182, 193, 0.2) 0%, transparent 60%);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation: pufferBounce 2s ease-in-out infinite;
+}
+
+@keyframes pufferBounce {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+.fish-card--puffer:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(255, 182, 193, 0.3) 0%, rgba(255, 160, 122, 0.3) 100%);
+    border-color: rgba(255, 182, 193, 0.8);
+    box-shadow: 0 4px 12px rgba(255, 182, 193, 0.4);
+}
+
+.fish-card--puffer .cosmetic-icon {
+    color: #FFB6C1;
+    filter: drop-shadow(0 2px 4px rgba(255, 182, 193, 0.5));
+    animation: pufferWiggle 3s ease-in-out infinite;
+}
+
+@keyframes pufferWiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-2deg); }
+    75% { transform: rotate(2deg); }
+}
+
+/* 凶猛小鲨鱼 - 蓝灰色调，锐利风格 */
+.fish-card--shark {
+    background: linear-gradient(135deg, rgba(70, 130, 180, 0.2) 0%, rgba(112, 128, 144, 0.2) 100%);
+    border-color: rgba(70, 130, 180, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.fish-card--shark::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(70, 130, 180, 0.15), transparent);
+    animation: sharkSweep 2s ease-in-out infinite;
+}
+
+@keyframes sharkSweep {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: -100%; }
+}
+
+.fish-card--shark:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(70, 130, 180, 0.3) 0%, rgba(112, 128, 144, 0.3) 100%);
+    border-color: rgba(70, 130, 180, 0.8);
+    box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+}
+
+.fish-card--shark .cosmetic-icon {
+    color: #4682B4;
+    filter: drop-shadow(0 2px 6px rgba(70, 130, 180, 0.5));
+}
+
+/* 神秘龙鱼 - 青色+金色，神秘元素，稀有特效 */
+.fish-card--dragon {
+    background: linear-gradient(135deg, rgba(0, 206, 209, 0.25) 0%, rgba(255, 215, 0, 0.2) 100%);
+    border-color: rgba(255, 215, 0, 0.6);
+    position: relative;
+    overflow: visible;
+    animation: dragonGlow 3s ease-in-out infinite;
+}
+
+@keyframes dragonGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px rgba(0, 206, 209, 0.4),
+            0 0 25px rgba(255, 215, 0, 0.3),
+            var(--shadow-sm);
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(0, 206, 209, 0.6),
+            0 0 35px rgba(255, 215, 0, 0.5),
+            var(--shadow-md);
+    }
+}
+
+/* 神秘轨道点装饰 */
+.fish-card--dragon::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, #FFD700 0%, transparent 70%);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px rgba(255, 215, 0, 0.8),
+        20px 15px 0 2px rgba(0, 206, 209, 0.6),
+        -15px 20px 0 2px rgba(255, 215, 0, 0.5);
+    animation: orbitFloat 4s ease-in-out infinite;
+}
+
+@keyframes orbitFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+    25% { transform: translate(5px, -5px) scale(1.1); opacity: 1; }
+    50% { transform: translate(-5px, 5px) scale(1.1); opacity: 1; }
+    75% { transform: translate(5px, 5px) scale(1); opacity: 0.9; }
+}
+
+/* 漩涡装饰 */
+.fish-card--dragon::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 206, 209, 0.4);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: swirlRotate 3s linear infinite;
+}
+
+@keyframes swirlRotate {
+    0% { transform: rotate(0deg); opacity: 0.4; }
+    100% { transform: rotate(360deg); opacity: 0.6; }
+}
+
+.fish-card--dragon:hover:not(.locked) {
+    background: linear-gradient(135deg, rgba(0, 206, 209, 0.35) 0%, rgba(255, 215, 0, 0.3) 100%);
+    border-color: rgba(255, 215, 0, 0.9);
+    box-shadow: 
+        0 4px 16px rgba(0, 206, 209, 0.5),
+        0 0 30px rgba(255, 215, 0, 0.4),
+        var(--shadow-lg);
+}
+
+.fish-card--dragon .cosmetic-icon {
+    color: #00CED1;
+    filter: drop-shadow(0 2px 8px rgba(0, 206, 209, 0.6)) drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
+    animation: dragonBreath 2s ease-in-out infinite;
+}
+
+@keyframes dragonBreath {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 8px rgba(0, 206, 209, 0.6)) drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 2px 12px rgba(0, 206, 209, 0.8)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.7)); }
 }
 
 /* 类别特定的强调色 - 背景：紫色/海军/海洋色调 */
@@ -1862,12 +2621,13 @@ body {
  * 状态更新由CosmeticManager.select()方法控制，实时更新DOM中的selected类
  */
 
-/* 选中状态 - 增强的视觉反馈（使用光晕效果） */
+/* 选中状态 - 增强的视觉反馈（使用光晕效果和checkmark图标） */
 .cosmetic-card.selected {
     position: relative;
     border: 3px solid rgba(255, 215, 0, 0.9);
     transform: scale(1.05);
     animation: selectedPulse 2s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 250, 240, 0.95) 100%);
 }
 
 /* 类别特定的选中边框颜色 - 鱼竿：金色/绿色 */
@@ -1880,6 +2640,90 @@ body {
         var(--shadow-md);
 }
 
+/* 每种鱼竿类型的选中状态特定样式 */
+.rod-card--basic.selected {
+    border-color: rgba(139, 69, 19, 0.8);
+    box-shadow: 
+        0 0 15px rgba(139, 69, 19, 0.5),
+        0 0 25px rgba(255, 215, 0, 0.4),
+        var(--shadow-md);
+}
+
+.rod-card--gold.selected {
+    border-color: rgba(255, 215, 0, 1);
+    box-shadow: 
+        0 0 25px rgba(255, 215, 0, 0.8),
+        0 0 40px rgba(255, 215, 0, 0.6),
+        var(--shadow-md);
+}
+
+.rod-card--bamboo.selected {
+    border-color: rgba(154, 205, 50, 0.9);
+    box-shadow: 
+        0 0 20px rgba(154, 205, 50, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.5),
+        var(--shadow-md);
+}
+
+.rod-card--crystal.selected {
+    border-color: rgba(176, 224, 230, 0.9);
+    box-shadow: 
+        0 0 25px rgba(176, 224, 230, 0.7),
+        0 0 35px rgba(255, 255, 255, 0.5),
+        0 0 40px rgba(255, 215, 0, 0.4),
+        var(--shadow-md);
+}
+
+.rod-card--cosmic.selected {
+    border-color: rgba(138, 43, 226, 1);
+    box-shadow: 
+        0 0 30px rgba(138, 43, 226, 0.8),
+        0 0 45px rgba(255, 215, 0, 0.6),
+        0 0 50px rgba(138, 43, 226, 0.5),
+        var(--shadow-md);
+}
+
+/* 选中状态的checkmark图标 */
+.cosmetic-checkmark {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 165, 0, 0.95) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 0 10px rgba(255, 215, 0, 0.6);
+    animation: checkmarkPulse 2s ease-in-out infinite;
+}
+
+@keyframes checkmarkPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.3),
+            0 0 10px rgba(255, 215, 0, 0.6);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.4),
+            0 0 15px rgba(255, 215, 0, 0.8);
+    }
+}
+
+.cosmetic-checkmark .icon {
+    width: 14px;
+    height: 14px;
+    color: white;
+    stroke-width: 3;
+}
+
 /* 类别特定的选中边框颜色 - 鱼图标：金色/青色 */
 .cosmetic-card--fish.selected {
     border-color: rgba(255, 215, 0, 0.9);
@@ -1888,6 +2732,70 @@ body {
         0 0 30px rgba(255, 215, 0, 0.6),
         0 4px 12px rgba(255, 182, 193, 0.4),
         var(--shadow-md);
+}
+
+/* 每种鱼类型的选中状态特定样式 */
+.fish-card--koi-basic.selected {
+    border-color: rgba(64, 224, 208, 0.9);
+    box-shadow: 
+        0 0 20px rgba(64, 224, 208, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.5),
+        var(--shadow-md);
+}
+
+.fish-card--koi-lucky.selected {
+    border-color: rgba(255, 215, 0, 1);
+    box-shadow: 
+        0 0 25px rgba(255, 215, 0, 0.7),
+        0 0 35px rgba(64, 224, 208, 0.5),
+        var(--shadow-md);
+}
+
+.fish-card--puffer.selected {
+    border-color: rgba(255, 182, 193, 0.9);
+    box-shadow: 
+        0 0 20px rgba(255, 182, 193, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.5),
+        var(--shadow-md);
+}
+
+.fish-card--shark.selected {
+    border-color: rgba(70, 130, 180, 0.9);
+    box-shadow: 
+        0 0 20px rgba(70, 130, 180, 0.6),
+        0 0 30px rgba(255, 215, 0, 0.5),
+        var(--shadow-md);
+}
+
+.fish-card--dragon.selected {
+    border-color: rgba(255, 215, 0, 1);
+    box-shadow: 
+        0 0 30px rgba(0, 206, 209, 0.8),
+        0 0 40px rgba(255, 215, 0, 0.7),
+        0 0 50px rgba(0, 206, 209, 0.5),
+        var(--shadow-lg);
+    animation: dragonGlow 3s ease-in-out infinite, selectedPulse 2s ease-in-out infinite;
+}
+
+/* 鱼图标悬停时的游泳动画 */
+.cosmetic-card--fish:hover:not(.locked) .cosmetic-icon {
+    animation: fishSwim 0.6s ease-in-out;
+}
+
+@keyframes fishSwim {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    25% { transform: translateX(-3px) rotate(-3deg); }
+    75% { transform: translateX(3px) rotate(3deg); }
+}
+
+/* 选中鱼图标的呼吸动画 */
+.cosmetic-card--fish.selected .cosmetic-icon {
+    animation: fishBreathe 3s ease-in-out infinite;
+}
+
+@keyframes fishBreathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 /* 类别特定的选中边框颜色 - 背景：金色/紫色 */
@@ -1923,12 +2831,12 @@ body {
 
 /* 锁定状态 - 统一的视觉样式（去饱和度和降低不透明度） */
 .cosmetic-card.locked {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
-    background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%);
-    border-color: var(--color-border);
+    background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%) !important;
+    border-color: var(--color-border) !important;
     position: relative;
-    filter: grayscale(0.6);
+    filter: grayscale(0.7);
 }
 
 /* 锁定项内的图标也应用去饱和度 */
@@ -1940,9 +2848,16 @@ body {
 
 /* 锁定项悬停时不显示交互效果 */
 .cosmetic-card.locked:hover {
-    transform: none;
-    box-shadow: var(--shadow-xs);
-    border-color: var(--color-border);
+    transform: none !important;
+    box-shadow: var(--shadow-xs) !important;
+    border-color: var(--color-border) !important;
+    background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%) !important;
+}
+
+/* 锁定项的特殊伪元素效果被禁用 */
+.cosmetic-card.locked::before,
+.cosmetic-card.locked::after {
+    display: none;
 }
 
 /* 锁定项点击时的抖动提示 */
@@ -2054,7 +2969,7 @@ body {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
-    line-height: 1.4;
+    line-height: 1.5;
     text-align: center;
     word-break: break-word;
     display: -webkit-box;
@@ -2065,6 +2980,14 @@ body {
     width: 100%;
     margin-top: auto;
     padding-top: var(--spacing-xs);
+    min-height: 2.4em; /* 确保2行文本的高度 */
+}
+
+/* 鱼竿卡片的名称稍微大一点 */
+.cosmetic-card--rod .cosmetic-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
 }
 
 /* 锁定图标 - 统一位置和样式（圆形徽章） */
@@ -2084,6 +3007,47 @@ body {
     backdrop-filter: blur(4px);
 }
 
+/* 稀有徽章 - 收藏家纪念章解锁的物品（药丸形状，左上角） */
+.cosmetic-rare-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(255, 165, 0, 0.95) 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    z-index: 15;
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(255, 107, 107, 0.6);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+    animation: rareBadgePulse 2s ease-in-out infinite;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 稀有徽章仅在鱼竿卡片上时的特殊样式（确保不与checkmark重叠） */
+.cosmetic-card--rod .cosmetic-rare-badge {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(255, 165, 0, 0.95) 100%);
+}
+
+@keyframes rareBadgePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.3),
+            0 0 8px rgba(255, 107, 107, 0.6);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.4),
+            0 0 12px rgba(255, 107, 107, 0.8);
+    }
+}
+
 .lock-icon .icon {
     width: 14px;
     height: 14px;
@@ -2093,15 +3057,22 @@ body {
 
 /* 解锁条件文本 - 视觉上更轻 */
 .cosmetic-requirement {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--color-text-light);
     margin-top: var(--spacing-xs);
     text-align: center;
-    line-height: 1.3;
+    line-height: 1.4;
     padding-top: var(--spacing-xs);
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
     width: 100%;
-    opacity: 0.8;
+    opacity: 0.75;
+}
+
+/* 锁定鱼竿卡片的解锁条件文本样式 */
+.cosmetic-card--rod.locked .cosmetic-requirement {
+    font-size: 10px;
+    padding-top: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
 }
 
 /* 猫咪颜色样式 */
@@ -2139,6 +3110,47 @@ body {
 .cat-purple .cat-ear-left,
 .cat-purple .cat-ear-right {
     border-bottom-color: #DA70D6;
+}
+
+/* 星空猫：深紫渐变 + 微光星点 */
+.cat-starry .cat-head {
+    background: radial-gradient(circle at 35% 30%, rgba(255, 239, 213, 0.3), transparent 45%),
+                radial-gradient(circle at 65% 60%, rgba(255, 255, 255, 0.25), transparent 55%),
+                linear-gradient(135deg, #1e1a3b 0%, #4b0082 40%, #7a1fa2 100%);
+    box-shadow: 0 0 25px rgba(75, 0, 130, 0.45);
+    position: relative;
+}
+
+.cat-starry .cat-head::after {
+    content: '';
+    position: absolute;
+    inset: 10% 15%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, transparent 60%);
+    opacity: 0.4;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: starryPulse 3s ease-in-out infinite;
+}
+
+@keyframes starryPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.95); }
+    50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+.cat-starry .cat-ear-left,
+.cat-starry .cat-ear-right {
+    border-bottom-color: #4B0082;
+}
+
+/* 彩虹猫：柔和多彩渐变，亮目活泼 */
+.cat-rainbow .cat-head {
+    background: linear-gradient(140deg, #ff6bb5 0%, #ffbe5d 35%, #8fd3ff 70%, #b48cff 100%);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.35);
+}
+
+.cat-rainbow .cat-ear-left,
+.cat-rainbow .cat-ear-right {
+    border-bottom-color: #FF69B4;
 }
 
 /* 鱼竿样式 - 为4种鱼竿设计不同的视觉效果 */
@@ -2179,6 +3191,39 @@ body {
         0 0 10px rgba(192, 192, 192, 0.5),
         0 0 20px rgba(224, 224, 224, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 宇宙鱼竿主屏钩子细节：在 cosmic 鱼竿选中时，在钩子附近添加一个小行星光点 */
+.rod-cosmic .rod-hook {
+    position: relative;
+}
+
+.rod-cosmic .rod-hook::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    right: -2px;
+    top: -2px;
+    background: radial-gradient(circle, rgba(255, 239, 213, 0.95) 0%, rgba(147, 112, 219, 0.7) 45%, transparent 75%);
+    box-shadow:
+        0 0 6px rgba(147, 112, 219, 0.8),
+        0 0 10px rgba(255, 215, 0, 0.6);
+    opacity: 0.9;
+    pointer-events: none;
+    animation: cosmicHookOrb 2.8s ease-in-out infinite;
+}
+
+@keyframes cosmicHookOrb {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.75;
+    }
+    50% {
+        transform: translate(-2px, 2px) scale(1.12);
+        opacity: 1;
+    }
 }
 
 /* 模态框 - 现在使用panel-overlay结构，支持点击外部关闭 */
@@ -2550,6 +3595,174 @@ body {
     }
 }
 
+/* ========== 氛围效果样式 ========== */
+
+/* 极光动画层 - 极光之夜背景的特殊效果 */
+.ambient-aurora-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.ambient-aurora-layer::before,
+.ambient-aurora-layer::after {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(0, 255, 255, 0.1) 20%,
+        rgba(138, 43, 226, 0.2) 40%,
+        rgba(0, 255, 255, 0.1) 60%,
+        transparent 80%
+    );
+    animation: auroraFlow 15s linear infinite;
+}
+
+.ambient-aurora-layer::before {
+    left: -100%;
+    animation-delay: 0s;
+}
+
+.ambient-aurora-layer::after {
+    left: -100%;
+    animation-delay: 7.5s;
+    opacity: 0.6;
+}
+
+@keyframes auroraFlow {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(50%);
+    }
+}
+
+/* 闪烁的星星效果 */
+.ambient-aurora-layer {
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(2px 2px at 90% 40%, rgba(255, 255, 255, 0.5), transparent);
+    background-size: 200% 200%;
+    animation: starTwinkle 4s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+    0%, 100% {
+        opacity: 0.8;
+        background-position: 0% 0%;
+    }
+    50% {
+        opacity: 1;
+        background-position: 100% 100%;
+    }
+}
+
+/* 梦境光晕层 - 梦境海湾背景的特殊效果 */
+.ambient-dream-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(
+        ellipse at 30% 50%,
+        rgba(255, 182, 193, 0.15) 0%,
+        transparent 50%
+    ),
+    radial-gradient(
+        ellipse at 70% 50%,
+        rgba(138, 43, 226, 0.15) 0%,
+        transparent 50%
+    );
+    animation: dreamGlow 8s ease-in-out infinite;
+}
+
+@keyframes dreamGlow {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* 小动物元素 - 偶尔经过的小动物 */
+.ambient-animal {
+    position: fixed;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 100;
+    will-change: transform, opacity;
+    font-size: 24px;
+    animation: animalMove var(--duration, 4000ms) linear forwards;
+    top: var(--start-y, 50%);
+}
+
+/* 小鸟动画 */
+.ambient-animal--bird {
+    font-size: 20px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.ambient-animal--bird::before {
+    content: '🐦';
+}
+
+/* 小鱼动画 */
+.ambient-animal--fish {
+    font-size: 18px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.ambient-animal--fish::before {
+    content: '🐠';
+}
+
+@keyframes animalMove {
+    0% {
+        left: calc(var(--direction, 1) * -50px);
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-20px) scale(1);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        left: calc(100% + 50px);
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* 小动物悬停效果 */
+.ambient-animal:hover {
+    transform: scale(1.3) !important;
+    filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.6));
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
 /* 响应式：移动端外观面板 */
 @media (max-width: 768px) {
     .cosmetic-grid {
@@ -2558,8 +3771,14 @@ body {
     }
     
     .cosmetic-card {
-        min-height: 130px;
+        min-height: 140px;
         padding: var(--spacing-sm);
+    }
+    
+    /* 鱼竿卡片在移动端保持稍微更大的尺寸 */
+    .cosmetic-card--rod {
+        min-height: 150px;
+        padding: var(--spacing-sm) var(--spacing-xs);
     }
     
     .cosmetic-icon {
@@ -2585,8 +3804,45 @@ body {
         font-size: 11px;
     }
     
+    /* 鱼竿卡片名称在移动端稍微小一点 */
+    .cosmetic-card--rod .cosmetic-name {
+        font-size: 11px;
+    }
+    
     .cosmetic-requirement {
-        font-size: 10px;
+        font-size: 9px;
+    }
+    
+    /* 移动端的checkmark和徽章稍微小一点 */
+    .cosmetic-checkmark {
+        width: 20px;
+        height: 20px;
+        top: 4px;
+        right: 4px;
+    }
+    
+    .cosmetic-checkmark .icon {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .cosmetic-rare-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        top: 4px;
+        left: 4px;
+    }
+    
+    .lock-icon {
+        width: 20px;
+        height: 20px;
+        top: 4px;
+        right: 4px;
+    }
+    
+    .lock-icon .icon {
+        width: 12px;
+        height: 12px;
     }
     
     .modal-content {

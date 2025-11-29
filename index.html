@@ -74,8 +74,12 @@
                         <div class="cat-head">
                             <div class="cat-eyebrow cat-eyebrow-left"></div>
                             <div class="cat-eyebrow cat-eyebrow-right"></div>
-                            <div class="cat-eye cat-eye-left"></div>
-                            <div class="cat-eye cat-eye-right"></div>
+                            <div class="cat-eye cat-eye-left">
+                                <div class="cat-pupil"></div>
+                            </div>
+                            <div class="cat-eye cat-eye-right">
+                                <div class="cat-pupil"></div>
+                            </div>
                             <div class="cat-nose"></div>
                             <div class="cat-mouth"></div>
                             <div class="cat-blush cat-blush-left"></div>
@@ -204,20 +208,34 @@
             <circle cx="16" cy="15" r="1" fill="#654321"/>
         </symbol>
         
-        <!-- 闪耀金鱼竿图标 - 带高光和圆环 -->
+        <!-- 闪耀金鱼竿图标 - 重新设计：更加金光闪闪，带星星装饰 -->
         <symbol id="icon-rod-golden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <defs>
                 <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                    <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
+                    <stop offset="30%" style="stop-color:#FFA500;stop-opacity:1" />
+                    <stop offset="60%" style="stop-color:#FFD700;stop-opacity:1" />
                     <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
                 </linearGradient>
+                <filter id="goldGlow">
+                    <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
             </defs>
-            <path d="M3 5l6 6M6 3l8 8" stroke="url(#goldGradient)" stroke-width="2.5"/>
-            <circle cx="18" cy="17" r="3" fill="url(#goldGradient)" opacity="0.9"/>
-            <circle cx="18" cy="17" r="2" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.6"/>
-            <circle cx="16" cy="15" r="1.2" fill="#FFD700"/>
-            <circle cx="19" cy="16" r="0.8" fill="#FFF" opacity="0.8"/>
+            <!-- 鱼竿主体 - 金色渐变，更粗更明显 -->
+            <path d="M4 4l5 5M5 2l9 9" stroke="url(#goldGradient)" stroke-width="3" filter="url(#goldGlow)"/>
+            <!-- 金色鱼钩 - 更大更闪亮 -->
+            <circle cx="19" cy="18" r="3.5" fill="url(#goldGradient)" opacity="0.95" filter="url(#goldGlow)"/>
+            <circle cx="19" cy="18" r="2.5" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.8"/>
+            <!-- 高光点 -->
+            <circle cx="17.5" cy="16.5" r="1.5" fill="#FFF" opacity="0.9"/>
+            <circle cx="20" cy="17.5" r="0.8" fill="#FFF" opacity="0.7"/>
+            <!-- 星星装饰 - 增加闪耀感 -->
+            <path d="M7 6l0.5 1 1 0.5-1 0.5-0.5 1-0.5-1-1-0.5 1-0.5z" fill="#FFD700" opacity="0.8"/>
+            <path d="M12 4l0.3 0.6 0.6 0.3-0.6 0.3-0.3 0.6-0.3-0.6-0.6-0.3 0.6-0.3z" fill="#FFD700" opacity="0.6"/>
         </symbol>
         
         <!-- 翠绿竹鱼竿图标 - 细线带叶子 -->
@@ -229,20 +247,90 @@
             <path d="M17 14l-1 2M18 15l-1 1" stroke="#228B22" stroke-width="1" stroke-linecap="round"/>
         </symbol>
         
-        <!-- 水晶透明鱼竿图标 - 多段折线和透明效果 -->
+        <!-- 水晶透明鱼竿图标 - 重新设计：更加透明闪亮，带折射光效果 -->
         <symbol id="icon-rod-crystal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <defs>
                 <linearGradient id="crystalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#E0E0E0;stop-opacity:0.8" />
-                    <stop offset="50%" style="stop-color:#C0C0C0;stop-opacity:0.6" />
-                    <stop offset="100%" style="stop-color:#A0A0A0;stop-opacity:0.4" />
+                    <stop offset="0%" style="stop-color:#E8F4F8;stop-opacity:0.9" />
+                    <stop offset="30%" style="stop-color:#B0E0E6;stop-opacity:0.7" />
+                    <stop offset="60%" style="stop-color:#E8F4F8;stop-opacity:0.9" />
+                    <stop offset="100%" style="stop-color:#87CEEB;stop-opacity:0.6" />
                 </linearGradient>
+                <linearGradient id="crystalShine" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.8" />
+                    <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+                </linearGradient>
+                <filter id="crystalGlow">
+                    <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
             </defs>
-            <path d="M3 5l3 3M6 3l4 4M10 7l4 4" stroke="url(#crystalGradient)" stroke-width="2" opacity="0.7"/>
-            <circle cx="18" cy="17" r="2.5" fill="url(#crystalGradient)" opacity="0.5"/>
-            <circle cx="18" cy="17" r="1.5" fill="none" stroke="#E0E0E0" stroke-width="1" opacity="0.8"/>
-            <circle cx="16" cy="15" r="1" fill="#C0C0C0" opacity="0.6"/>
-            <path d="M17 16l1-1M19 14l1-1" stroke="#FFF" stroke-width="0.5" opacity="0.5"/>
+            <!-- 鱼竿主体 - 透明水晶效果，更明显 -->
+            <path d="M4 4l5 5M5 2l9 9" stroke="url(#crystalGradient)" stroke-width="3" opacity="0.8" filter="url(#crystalGlow)"/>
+            <!-- 折射光效果 - 增加透明感 -->
+            <path d="M6 3l2 2M9 6l2 2" stroke="url(#crystalShine)" stroke-width="1.5" opacity="0.6"/>
+            <!-- 水晶鱼钩 - 透明闪亮 -->
+            <circle cx="19" cy="18" r="3.5" fill="url(#crystalGradient)" opacity="0.7" filter="url(#crystalGlow)"/>
+            <circle cx="19" cy="18" r="2.8" fill="none" stroke="#E8F4F8" stroke-width="1.5" opacity="0.9"/>
+            <circle cx="19" cy="18" r="2" fill="url(#crystalShine)" opacity="0.5"/>
+            <!-- 高光反射点 -->
+            <circle cx="17.5" cy="16.5" r="1.2" fill="#FFF" opacity="0.95"/>
+            <circle cx="20" cy="18.5" r="0.6" fill="#FFF" opacity="0.8"/>
+            <!-- 折射光线 -->
+            <path d="M18 17l1-1M20 19l1-1" stroke="#FFF" stroke-width="1" opacity="0.6"/>
+        </symbol>
+        
+        <!-- 宇宙鱼竿图标 - 全新设计：简洁星球与轨道，使用 currentColor 便于通过CSS统一配色 -->
+        <!-- 新的 icon-rod-cosmic 使用实心行星+细轨道结构，在小尺寸下也能清晰表现“宇宙/行星”感 -->
+        <symbol id="icon-rod-cosmic" viewBox="0 0 24 24">
+            <!-- 斜向鱼竿主体（使用 stroke=currentColor，简洁线条） -->
+            <path d="M4 5 L11 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- 手柄加粗一小段，增强鱼竿感 -->
+            <path d="M4 5 L6 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            
+            <!-- 中号行星（主行星） -->
+            <circle cx="16.5" cy="10.5" r="2.1" fill="currentColor" opacity="0.9"/>
+            <!-- 主行星高光（柔和黄白） -->
+            <circle cx="15.9" cy="9.9" r="0.8" fill="#FFEFD5" opacity="0.9"/>
+            
+            <!-- 小行星 1 -->
+            <circle cx="19.2" cy="13.6" r="1.2" fill="currentColor" opacity="0.8"/>
+            <circle cx="18.9" cy="13.1" r="0.4" fill="#FFEFD5" opacity="0.9"/>
+            
+            <!-- 小行星 2 -->
+            <circle cx="13.4" cy="13.2" r="1.4" fill="currentColor" opacity="0.75"/>
+            <circle cx="12.9" cy="12.7" r="0.45" fill="#FFF8DC" opacity="0.9"/>
+            
+            <!-- 轨道弧线（围绕主行星的细弧线，强调“行星轨道”感） -->
+            <path d="M12 11.2c1.8-1.3 3.8-1.6 5.7-0.9 0.6 0.2 1.1 0.5 1.5 0.8" 
+                  fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" opacity="0.7"/>
+            <!-- 另一条轻微交叉轨道，增加宇宙感但保持简洁 -->
+            <path d="M14.2 8.4c-1.4 0.4-2.6 1.2-3.4 2.2" 
+                  fill="none" stroke="currentColor" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+            
+            <!-- 星光/火花：三颗小星点，简单十字结构 -->
+            <path d="M9.4 6.2
+                     m-0.6 0
+                     h1.2
+                     m-0.6 -0.6
+                     v1.2" 
+                  fill="none" stroke="#FFF8DC" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+            <path d="M17.9 6.8
+                     m-0.5 0
+                     h1
+                     m-0.5 -0.5
+                     v1" 
+                  fill="none" stroke="#FFEFD5" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+            <path d="M13.2 16.6
+                     m-0.5 0
+                     h1
+                     m-0.5 -0.5
+                     v1" 
+                  fill="none" stroke="#FFF8DC" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
         </symbol>
         
         <!-- 机器人图标 - 自动钓鱼助手 -->
@@ -265,46 +353,253 @@
             <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
         </symbol>
         
-        <!-- 经典小鲤鱼图标 - 简单清晰的鲤鱼设计 -->
+        <!-- 经典小鲤鱼图标 - 简单圆润的鲤鱼，柔和的青蓝色调 -->
         <symbol id="icon-fish" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 16c-2-2-2-4 0-6s4-2 6 0 4 2 6 0 2-4 0-6-4-2-6 0-4-2-6 0-2 4 0 6" fill="none"/>
-            <path d="M16 10v6M14 12h4"/>
-            <circle cx="20" cy="12" r="1.5" fill="currentColor"/>
-            <path d="M10 14c1-1 2-1 3 0" stroke-width="1" opacity="0.6"/>
+            <defs>
+                <linearGradient id="koiBasicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#40E0D0;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#87CEEB;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- 鱼身 - 圆润的椭圆形 -->
+            <ellipse cx="16" cy="16" rx="10" ry="6" fill="url(#koiBasicGradient)" opacity="0.3" stroke="url(#koiBasicGradient)"/>
+            <!-- 尾鳍 -->
+            <path d="M6 16 Q4 14 4 12 Q4 10 6 8" fill="none" stroke="url(#koiBasicGradient)"/>
+            <path d="M6 16 Q4 18 4 20 Q4 22 6 24" fill="none" stroke="url(#koiBasicGradient)"/>
+            <!-- 背鳍 -->
+            <path d="M12 10 Q14 8 16 10" fill="none" stroke="url(#koiBasicGradient)"/>
+            <!-- 眼睛 -->
+            <circle cx="20" cy="14" r="1.5" fill="currentColor"/>
+            <circle cx="20.5" cy="13.5" r="0.5" fill="white"/>
+            <!-- 身体纹理 -->
+            <circle cx="12" cy="15" r="0.8" fill="currentColor" opacity="0.5"/>
+            <circle cx="14" cy="17" r="0.6" fill="currentColor" opacity="0.5"/>
         </symbol>
         
-        <!-- 幸运锦鲤图标 - 带尾鳍展开和星星装饰，明显区别于经典鲤鱼 -->
+        <!-- 幸运锦鲤图标 - 装饰性锦鲤，长尾鳍，金色+青色配色，带星星/光环装饰 -->
         <symbol id="icon-fish-koi" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 16c-2-2-2-4 0-6s4-2 6 0 4 2 6 0 2-4 0-6-4-2-6 0-4-2-6 0-2 4 0 6" fill="none"/>
-            <path d="M16 10v6M14 12h4"/>
-            <circle cx="20" cy="12" r="1.5" fill="currentColor"/>
-            <!-- 展开的尾鳍 -->
-            <path d="M6 16l-2-3M6 16l-2 3" stroke-width="2" stroke-linecap="round"/>
-            <!-- 身体上的装饰点 -->
-            <circle cx="10" cy="12" r="1" fill="currentColor" opacity="0.7"/>
-            <circle cx="14" cy="14" r="0.8" fill="currentColor" opacity="0.7"/>
-            <circle cx="12" cy="16" r="0.6" fill="currentColor" opacity="0.7"/>
-            <!-- 小星星装饰 -->
-            <path d="M22 8l0.5 1 1 0.5-1 0.5-0.5 1-0.5-1-1-0.5 1-0.5z" fill="currentColor" opacity="0.8"/>
+            <defs>
+                <linearGradient id="koiLuckyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#40E0D0;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#40E0D0;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- 鱼身 - 更修长 -->
+            <ellipse cx="16" cy="16" rx="11" ry="6.5" fill="url(#koiLuckyGradient)" opacity="0.3" stroke="url(#koiLuckyGradient)"/>
+            <!-- 展开的长尾鳍 -->
+            <path d="M5 16 Q2 12 2 8 Q2 4 5 2" fill="none" stroke="url(#koiLuckyGradient)" stroke-width="2"/>
+            <path d="M5 16 Q2 20 2 24 Q2 28 5 30" fill="none" stroke="url(#koiLuckyGradient)" stroke-width="2"/>
+            <!-- 背鳍和腹鳍 -->
+            <path d="M10 8 Q12 6 14 8 Q16 10 18 8" fill="none" stroke="url(#koiLuckyGradient)"/>
+            <path d="M10 24 Q12 26 14 24 Q16 22 18 24" fill="none" stroke="url(#koiLuckyGradient)"/>
+            <!-- 眼睛 -->
+            <circle cx="21" cy="14" r="1.8" fill="currentColor"/>
+            <circle cx="21.5" cy="13.5" r="0.6" fill="white"/>
+            <!-- 身体装饰点 - 金色斑点 -->
+            <circle cx="11" cy="14" r="1" fill="#FFD700" opacity="0.8"/>
+            <circle cx="14" cy="16" r="0.8" fill="#FFD700" opacity="0.8"/>
+            <circle cx="12" cy="18" r="0.6" fill="#FFD700" opacity="0.8"/>
+            <!-- 幸运光环/星星装饰 -->
+            <path d="M24 8l0.6 1.2 1.2 0.6-1.2 0.6-0.6 1.2-0.6-1.2-1.2-0.6 1.2-0.6z" fill="#FFD700" opacity="0.9"/>
+            <circle cx="24" cy="8" r="2" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.6"/>
         </symbol>
         
-        <!-- 河豚图标 -->
-        <symbol id="icon-fish-puffer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="8"/>
-            <circle cx="12" cy="12" r="5" fill="currentColor" opacity="0.3"/>
+        <!-- 可爱河豚图标 - 圆润的河豚，带小刺/脸颊，可爱表情 -->
+        <symbol id="icon-fish-puffer" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+                <linearGradient id="pufferGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFB6C1;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FFA07A;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- 圆润的身体 -->
+            <circle cx="16" cy="16" r="10" fill="url(#pufferGradient)" opacity="0.3" stroke="url(#pufferGradient)"/>
+            <!-- 小刺/尖刺 -->
+            <circle cx="8" cy="12" r="1.5" fill="currentColor" opacity="0.6"/>
+            <circle cx="24" cy="12" r="1.5" fill="currentColor" opacity="0.6"/>
+            <circle cx="8" cy="20" r="1.5" fill="currentColor" opacity="0.6"/>
+            <circle cx="24" cy="20" r="1.5" fill="currentColor" opacity="0.6"/>
+            <!-- 大眼睛 -->
+            <circle cx="12" cy="13" r="2" fill="white"/>
+            <circle cx="12" cy="13" r="1.2" fill="currentColor"/>
+            <circle cx="12.3" cy="12.7" r="0.4" fill="white"/>
+            <circle cx="20" cy="13" r="2" fill="white"/>
+            <circle cx="20" cy="13" r="1.2" fill="currentColor"/>
+            <circle cx="20.3" cy="12.7" r="0.4" fill="white"/>
+            <!-- 可爱的嘴巴 -->
+            <path d="M14 18 Q16 20 18 18" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <!-- 脸颊红晕 -->
+            <circle cx="9" cy="16" r="2" fill="#FFB6C1" opacity="0.4"/>
+            <circle cx="23" cy="16" r="2" fill="#FFB6C1" opacity="0.4"/>
+        </symbol>
+        
+        <!-- 凶猛小鲨鱼图标 - 尖锐的鲨鱼轮廓，明显的背鳍，蓝灰色调 -->
+        <symbol id="icon-fish-shark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+                <linearGradient id="sharkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4682B4;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#708090;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <!-- 鲨鱼身体 - 尖锐的流线型 -->
+            <path d="M6 16 Q8 12 12 10 Q16 8 20 10 Q24 12 26 16 Q24 20 20 22 Q16 24 12 22 Q8 20 6 16 Z" 
+                  fill="url(#sharkGradient)" opacity="0.3" stroke="url(#sharkGradient)"/>
+            <!-- 明显的背鳍 -->
+            <path d="M14 8 L16 4 L18 8" fill="url(#sharkGradient)" stroke="url(#sharkGradient)" stroke-width="1.5"/>
+            <!-- 尾鳍 -->
+            <path d="M26 16 L30 14 L30 18 Z" fill="url(#sharkGradient)" opacity="0.6" stroke="url(#sharkGradient)"/>
+            <!-- 眼睛 - 小而锐利 -->
+            <circle cx="20" cy="14" r="1.5" fill="currentColor"/>
+            <circle cx="20.3" cy="13.7" r="0.5" fill="white"/>
+            <!-- 嘴巴 - 尖锐的牙齿 -->
+            <path d="M8 16 L6 18 M8 16 L6 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- 鳃裂 -->
+            <path d="M10 14 L10 18 M12 14 L12 18" stroke="url(#sharkGradient)" stroke-width="1" opacity="0.6"/>
+        </symbol>
+        
+        <!-- 神秘龙鱼图标 - 龙鱼/幻想风格，长身体曲线，神秘元素（轨道点、漩涡），青色+金色配色 -->
+        <symbol id="icon-fish-dragon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+                <linearGradient id="dragonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#00CED1;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#FFD700;stop-opacity:0.9" />
+                    <stop offset="100%" style="stop-color:#00CED1;stop-opacity:1" />
+                </linearGradient>
+                <radialGradient id="dragonOrbGradient" cx="50%" cy="50%">
+                    <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#00CED1;stop-opacity:0.3" />
+                </radialGradient>
+            </defs>
+            <!-- 龙鱼身体 - 长而弯曲 -->
+            <path d="M4 20 Q8 16 12 14 Q16 12 20 14 Q24 16 28 18" 
+                  fill="none" stroke="url(#dragonGradient)" stroke-width="2"/>
+            <ellipse cx="16" cy="16" rx="12" ry="4" fill="url(#dragonGradient)" opacity="0.2"/>
+            <!-- 龙鱼头部 -->
+            <circle cx="4" cy="20" r="3" fill="url(#dragonGradient)" opacity="0.3" stroke="url(#dragonGradient)"/>
+            <!-- 眼睛 -->
+            <circle cx="5" cy="19" r="1.2" fill="currentColor"/>
+            <circle cx="5.3" cy="18.7" r="0.4" fill="white"/>
+            <!-- 背鳍 - 长而飘逸 -->
+            <path d="M8 14 Q10 10 12 8 Q14 6 16 8" fill="none" stroke="url(#dragonGradient)"/>
+            <path d="M18 8 Q20 6 22 8 Q24 10 26 12" fill="none" stroke="url(#dragonGradient)"/>
+            <!-- 尾鳍 - 分叉 -->
+            <path d="M28 18 L30 16 L32 18 L30 20 Z" fill="url(#dragonGradient)" opacity="0.4" stroke="url(#dragonGradient)"/>
+            <!-- 鳞片装饰 - 小圆点 -->
+            <circle cx="10" cy="16" r="0.8" fill="#FFD700" opacity="0.7"/>
+            <circle cx="14" cy="15" r="0.8" fill="#FFD700" opacity="0.7"/>
+            <circle cx="18" cy="15" r="0.8" fill="#FFD700" opacity="0.7"/>
+            <circle cx="22" cy="16" r="0.8" fill="#FFD700" opacity="0.7"/>
+            <!-- 神秘轨道点 -->
+            <circle cx="12" cy="10" r="1.5" fill="url(#dragonOrbGradient)" opacity="0.8">
+                <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="20" cy="8" r="1" fill="url(#dragonOrbGradient)" opacity="0.7">
+                <animate attributeName="opacity" values="0.5;0.9;0.5" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <!-- 漩涡装饰 -->
+            <path d="M24 20 Q24 22 22 22 Q20 22 20 20" fill="none" stroke="#00CED1" stroke-width="0.8" opacity="0.6"/>
+        </symbol>
+        
+        <!-- ========== 主屏幕实心填充鱼图标 ==========
+         * 这些图标用于显示在钓鱼竿钩子下方，采用实心填充风格
+         * 与猫咪的扁平、实心风格保持一致
+         * 使用 fill="currentColor" 以便通过CSS控制颜色
+         -->
+        
+        <!-- 经典小鲤鱼 - 实心填充版本：简单的小鱼身体+尾巴 -->
+        <symbol id="icon-main-fish-koi" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 鱼身 - 圆润的椭圆形 -->
+            <ellipse cx="14" cy="12" rx="7" ry="4.5" fill="currentColor"/>
+            <!-- 尾鳍 - 简单的三角形 -->
+            <path d="M6 12 L2 8 L2 10 L6 12 Z" fill="currentColor"/>
+            <path d="M6 12 L2 16 L2 14 L6 12 Z" fill="currentColor"/>
+            <!-- 背鳍 - 小三角形 -->
+            <path d="M10 7 L12 5 L14 7 Z" fill="currentColor"/>
+            <!-- 眼睛 - 白色高光 -->
+            <circle cx="16" cy="11" r="1.5" fill="white"/>
+            <circle cx="16.3" cy="10.7" r="0.5" fill="currentColor"/>
+        </symbol>
+        
+        <!-- 幸运锦鲤 - 实心填充版本：锦鲤，稍微花哨的尾巴或小装饰标记 -->
+        <symbol id="icon-main-fish-koi-lucky" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 鱼身 - 更修长的椭圆形 -->
+            <ellipse cx="14" cy="12" rx="8" ry="5" fill="currentColor"/>
+            <!-- 展开的长尾鳍 -->
+            <path d="M5 12 L1 7 L1 9 L5 12 Z" fill="currentColor"/>
+            <path d="M5 12 L1 17 L1 15 L5 12 Z" fill="currentColor"/>
+            <!-- 背鳍和腹鳍 -->
+            <path d="M9 6 L11 4 L13 6 L11 8 Z" fill="currentColor"/>
+            <path d="M9 18 L11 20 L13 18 L11 16 Z" fill="currentColor"/>
+            <!-- 眼睛 -->
+            <circle cx="17" cy="11" r="1.5" fill="white"/>
+            <circle cx="17.3" cy="10.7" r="0.5" fill="currentColor"/>
+            <!-- 金色装饰点 - 使用较浅的填充 -->
+            <circle cx="10" cy="11" r="0.8" fill="currentColor" opacity="0.7"/>
+            <circle cx="12" cy="12.5" r="0.6" fill="currentColor" opacity="0.7"/>
+        </symbol>
+        
+        <!-- 可爱河豚 - 实心填充版本：圆身体，几个凸起或脸颊 -->
+        <symbol id="icon-main-fish-puffer" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 圆润的身体 -->
+            <circle cx="12" cy="12" r="7" fill="currentColor"/>
+            <!-- 小刺/凸起 - 小圆点 -->
+            <circle cx="6" cy="9" r="1.2" fill="currentColor" opacity="0.8"/>
+            <circle cx="18" cy="9" r="1.2" fill="currentColor" opacity="0.8"/>
+            <circle cx="6" cy="15" r="1.2" fill="currentColor" opacity="0.8"/>
+            <circle cx="18" cy="15" r="1.2" fill="currentColor" opacity="0.8"/>
+            <!-- 大眼睛 -->
+            <circle cx="9" cy="10" r="1.8" fill="white"/>
             <circle cx="9" cy="10" r="1" fill="currentColor"/>
+            <circle cx="9.2" cy="9.8" r="0.3" fill="white"/>
+            <circle cx="15" cy="10" r="1.8" fill="white"/>
             <circle cx="15" cy="10" r="1" fill="currentColor"/>
-            <path d="M12 14c-1 0-2-0.5-2-1.5s1-1.5 2-1.5 2 0.5 2 1.5-1 1.5-2 1.5z"/>
+            <circle cx="15.2" cy="9.8" r="0.3" fill="white"/>
+            <!-- 可爱的嘴巴 - 小弧线 -->
+            <path d="M10 14 Q12 16 14 14" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <!-- 脸颊红晕 - 小圆 -->
+            <circle cx="7" cy="12" r="1.5" fill="currentColor" opacity="0.4"/>
+            <circle cx="17" cy="12" r="1.5" fill="currentColor" opacity="0.4"/>
         </symbol>
         
-        <!-- 鲨鱼图标 -->
-        <symbol id="icon-fish-shark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12c0-3 2-5 5-5s5 2 5 5M9 7v10M15 12c0 3-2 5-5 5s-5-2-5-5"/>
-            <path d="M7 10h6M8 14h4"/>
-            <path d="M18 8l2 4-2 4" opacity="0.5"/>
+        <!-- 凶猛小鲨鱼 - 实心填充版本：小鲨鱼轮廓，明显的鳍 -->
+        <symbol id="icon-main-fish-shark" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 鲨鱼身体 - 尖锐的流线型 -->
+            <path d="M4 12 Q6 8 10 7 Q14 6 18 7 Q20 8 20 12 Q20 16 18 17 Q14 18 10 17 Q6 16 4 12 Z" fill="currentColor"/>
+            <!-- 明显的背鳍 - 大三角形 -->
+            <path d="M11 5 L13 2 L15 5 Z" fill="currentColor"/>
+            <!-- 尾鳍 - 分叉 -->
+            <path d="M20 12 L22 10 L24 12 L22 14 Z" fill="currentColor"/>
+            <!-- 眼睛 - 小而锐利 -->
+            <circle cx="17" cy="11" r="1.2" fill="white"/>
+            <circle cx="17.2" cy="10.8" r="0.4" fill="currentColor"/>
+            <!-- 嘴巴 - 尖锐的牙齿 -->
+            <path d="M5 12 L3 14 M5 12 L3 10" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         </symbol>
         
-        <!-- 金色小鱼图标 - 带金色渐变和光晕效果 -->
+        <!-- 神秘龙鱼 - 实心填充版本：长身体，2-3个圆形段（像小圆球）或简单的龙鱼曲线 -->
+        <symbol id="icon-main-fish-dragon" viewBox="0 0 24 24" fill="currentColor">
+            <!-- 龙鱼身体 - 由3个连接的圆球组成 -->
+            <circle cx="6" cy="12" r="3" fill="currentColor"/>
+            <circle cx="12" cy="12" r="3.5" fill="currentColor"/>
+            <circle cx="18" cy="12" r="3" fill="currentColor"/>
+            <!-- 连接部分 -->
+            <ellipse cx="9" cy="12" rx="2" ry="2.5" fill="currentColor"/>
+            <ellipse cx="15" cy="12" rx="2" ry="2.5" fill="currentColor"/>
+            <!-- 头部眼睛 -->
+            <circle cx="5" cy="11" r="1" fill="white"/>
+            <circle cx="5.2" cy="10.8" r="0.4" fill="currentColor"/>
+            <!-- 背鳍 - 小三角形 -->
+            <path d="M9 7 L10 5 L11 7 Z" fill="currentColor"/>
+            <path d="M15 7 L16 5 L17 7 Z" fill="currentColor"/>
+            <!-- 尾鳍 - 分叉 -->
+            <path d="M20 12 L22 10 L24 12 L22 14 Z" fill="currentColor"/>
+            <!-- 装饰点 - 金色高光（使用较浅的填充） -->
+            <circle cx="10" cy="11" r="0.6" fill="currentColor" opacity="0.6"/>
+            <circle cx="14" cy="11" r="0.6" fill="currentColor" opacity="0.6"/>
+        </symbol>
+        
+        <!-- 金色小鱼图标 - 保持原有设计，用于向后兼容 -->
         <symbol id="icon-fish-golden" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <defs>
                 <linearGradient id="goldenFishGradient" x1="0%" y1="0%" x2="100%" y2="100%">
