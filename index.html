@@ -46,6 +46,13 @@
                     </span>
                     <span id="sea-stars" class="stat-value">0</span>
                 </div>
+                <div class="stat-item stat-item--collection-badge" id="fish-collection-badge" style="display: none;">
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-trophy"></use></svg>
+                        图鉴奖励
+                    </span>
+                    <span class="stat-value stat-value--small">✓</span>
+                </div>
             </div>
             <button id="mute-btn" class="mute-btn" aria-label="静音/取消静音">
                 <svg class="icon icon--mute"><use href="#icon-volume"></use></svg>
@@ -67,31 +74,37 @@
             <!-- 猫咪点击区域 -->
             <div class="cat-container">
                 <div id="cat-follow-wrapper" class="cat-follow-wrapper">
-                    <div id="cat" class="cat">
-                    <div class="cat-face">
-                        <div class="cat-ear cat-ear-left"></div>
-                        <div class="cat-ear cat-ear-right"></div>
-                        <div class="cat-head">
-                            <div class="cat-eyebrow cat-eyebrow-left"></div>
-                            <div class="cat-eyebrow cat-eyebrow-right"></div>
-                            <div class="cat-eye cat-eye-left">
-                                <div class="cat-pupil"></div>
+                    <div id="cat-motion-wrapper" class="cat-motion-wrapper">
+                        <div id="cat-breath-wrapper" class="cat-breath-wrapper">
+                            <div id="cat-squash-wrapper" class="cat-squash-wrapper">
+                                <div id="cat" class="cat">
+                                    <div class="cat-face">
+                                        <div class="cat-ear cat-ear-left"></div>
+                                        <div class="cat-ear cat-ear-right"></div>
+                                        <div class="cat-head">
+                                            <div class="cat-eyebrow cat-eyebrow-left"></div>
+                                            <div class="cat-eyebrow cat-eyebrow-right"></div>
+                                            <div class="cat-eye cat-eye-left">
+                                                <div class="cat-pupil"></div>
+                                            </div>
+                                            <div class="cat-eye cat-eye-right">
+                                                <div class="cat-pupil"></div>
+                                            </div>
+                                            <div class="cat-nose"></div>
+                                            <div class="cat-mouth"></div>
+                                            <div class="cat-blush cat-blush-left"></div>
+                                            <div class="cat-blush cat-blush-right"></div>
+                                        </div>
+                                    </div>
+                                    <div class="fishing-rod" id="fishing-rod">
+                                        <div class="rod-line"></div>
+                                        <div class="rod-hook" id="rod-hook">
+                                            <svg class="icon icon--hook"><use href="#icon-fish"></use></svg>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="cat-eye cat-eye-right">
-                                <div class="cat-pupil"></div>
-                            </div>
-                            <div class="cat-nose"></div>
-                            <div class="cat-mouth"></div>
-                            <div class="cat-blush cat-blush-left"></div>
-                            <div class="cat-blush cat-blush-right"></div>
                         </div>
-                    </div>
-                    <div class="fishing-rod" id="fishing-rod">
-                        <div class="rod-line"></div>
-                        <div class="rod-hook" id="rod-hook">
-                            <svg class="icon icon--hook"><use href="#icon-fish"></use></svg>
-                        </div>
-                    </div>
                     </div>
                 </div>
                 <div class="cat-hint">点击猫咪开始钓鱼吧！🐱</div>
@@ -112,30 +125,36 @@
                     <svg class="icon icon--title"><use href="#icon-cart"></use></svg>
                     <h2 class="shop-title">喵喵商店</h2>
                 </div>
-                <div class="shop-buttons">
+                <div class="shop-header-actions">
                     <button id="cosmetics-btn" class="shop-tab-btn" title="查看外观">
                         <svg class="icon icon--tab"><use href="#icon-palette"></use></svg>
                     </button>
                     <button id="achievements-btn" class="shop-tab-btn" title="查看成就">
                         <svg class="icon icon--tab"><use href="#icon-milestone"></use></svg>
                     </button>
+                    <button id="fish-collection-btn" class="shop-tab-btn" title="鱼鱼图鉴">
+                        <svg class="icon icon--tab"><use href="#icon-fish"></use></svg>
+                    </button>
                 </div>
             </div>
-            <div id="upgrades-list" class="upgrades-list">
-                <!-- 升级项将通过 JavaScript 动态生成 -->
-            </div>
-            <!-- 海星商店区域 -->
-            <div id="star-shop-section" class="star-shop-section" style="display: none;">
-                <div class="star-shop-header">
-                    <svg class="icon icon--title"><use href="#icon-star"></use></svg>
-                    <h3 class="star-shop-title">海星商店</h3>
+            <!-- shop-body：商店内容滚动区域；标题固定在顶部，避免一起滚动导致右侧按钮被滚动条遮挡 -->
+            <div class="shop-body">
+                <div id="upgrades-list" class="upgrades-list">
+                    <!-- 升级项将通过 JavaScript 动态生成 -->
                 </div>
-                <div id="star-upgrades-list" class="star-upgrades-list">
-                    <!-- 海星物品将通过 JavaScript 动态生成 -->
+                <!-- 海星商店区域 -->
+                <div id="star-shop-section" class="star-shop-section" style="display: none;">
+                    <div class="star-shop-header">
+                        <svg class="icon icon--title"><use href="#icon-star"></use></svg>
+                        <h3 class="star-shop-title">海星商店</h3>
+                    </div>
+                    <div id="star-upgrades-list" class="star-upgrades-list">
+                        <!-- 海星物品将通过 JavaScript 动态生成 -->
+                    </div>
                 </div>
-            </div>
-            <div class="reset-section">
-                <button id="prestige-btn" class="prestige-btn" style="display: none;">和猫猫一起出远海！</button>
+                <div class="reset-section">
+                    <button id="prestige-btn" class="prestige-btn" style="display: none;">和猫猫一起出远海！</button>
+                </div>
             </div>
         </aside>
 
@@ -171,6 +190,24 @@
                 </div>
                 <div id="cosmetics-list" class="cosmetics-list">
                     <!-- 外观项将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 鱼鱼图鉴面板 -->
+        <div id="fish-collection-panel" class="panel-overlay" style="display: none;">
+            <div class="panel-content">
+                <div class="achievements-header">
+                    <h2>
+                        <svg class="icon icon--title"><use href="#icon-fish"></use></svg>
+                        鱼鱼图鉴
+                    </h2>
+                    <button id="close-fish-collection" class="close-btn" aria-label="关闭">
+                        <svg class="icon icon--close"><use href="#icon-close"></use></svg>
+                    </button>
+                </div>
+                <div id="fish-collection-list" class="fish-collection-list">
+                    <!-- 鱼鱼图鉴卡片将通过 JavaScript 动态生成 -->
                 </div>
             </div>
         </div>

@@ -190,8 +190,9 @@ body {
 }
 
 .game-container {
-    max-width: 1200px;
-    margin: 0 auto;
+    max-width: none;          /* 让容器不再限制为 1200px */
+    width: 100%;              /* 占满整行 */
+    margin: 0 0 0 auto;       /* 整个容器自动"靠右" */
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: var(--spacing-lg);
@@ -248,6 +249,11 @@ body {
 
 .stat-value:hover {
     transform: scale(1.05);
+}
+
+/* 图鉴奖励徽章数值稍微小一点，避免喧宾夺主 */
+.stat-value--small {
+    font-size: var(--font-size-lg);
 }
 
 /* 数字变化时的闪烁效果 - GPU友好的动画 */
@@ -412,7 +418,72 @@ body {
 .cat-follow-wrapper {
     position: relative;
     will-change: transform; /* GPU加速 */
+    --cat-tilt: 0deg;
+    --cat-face-shift-x: 0px;
+    --cat-face-shift-y: 0px;
     /* 不使用CSS transition,由JS的requestAnimationFrame实现平滑插值 */
+}
+
+/* 惯性/呼吸/挤压包装器结构
+ * - motion wrapper: 接收跟随控制器传入的轻微scale/rotate，制造橡皮感
+ * - breath wrapper: 当处于空闲状态时播放极轻的呼吸动画
+ * - squash wrapper: 点击时触发挤压动画
+ */
+.cat-motion-wrapper,
+.cat-breath-wrapper,
+.cat-squash-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center bottom;
+    will-change: transform;
+}
+
+/* 呼吸动画由 CatSoftnessController 控制，空闲时自动启用 */
+.cat-breath-wrapper.is-breathing {
+    animation: catBreathing 4s ease-in-out infinite;
+}
+
+@keyframes catBreathing {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        transform: scale(1.02, 0.985) translateY(2px);
+    }
+}
+
+.cat-breath-wrapper.is-breathing .cat-face {
+    animation: catFaceBreathing 4s ease-in-out infinite;
+}
+
+@keyframes catFaceBreathing {
+    0%, 100% {
+        transform: translate(var(--cat-face-shift-x), var(--cat-face-shift-y));
+    }
+    50% {
+        transform: translate(calc(var(--cat-face-shift-x) + 1px), calc(var(--cat-face-shift-y) + 1px));
+    }
+}
+
+/* 点击时的 squash & stretch，通过添加 cat-click-squash 类触发 */
+.cat-squash-wrapper.cat-click-squash {
+    animation: catClickSquash 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes catClickSquash {
+    0% {
+        transform: scale(1);
+    }
+    20% {
+        transform: scale(1.06, 0.94);
+    }
+    50% {
+        transform: scale(0.96, 1.04);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* 猫咪 CSS 艺术 - 优化的点击动画（"boop"效果） */
@@ -453,6 +524,9 @@ body {
     position: relative;
     width: 200px;
     height: 200px;
+    transform: translate(var(--cat-face-shift-x), var(--cat-face-shift-y));
+    transition: transform 0.2s ease-out;
+    will-change: transform;
 }
 
 /* 猫咪耳朵 - 支持动画变换 */
@@ -470,12 +544,12 @@ body {
 
 .cat-ear-left {
     left: 50px;
-    transform: rotate(-20deg);
+    transform: rotate(calc(-20deg - (var(--cat-tilt, 0deg) * 0.3)));
 }
 
 .cat-ear-right {
     right: 50px;
-    transform: rotate(20deg);
+    transform: rotate(calc(20deg - (var(--cat-tilt, 0deg) * 0.3)));
 }
 
 .cat-ear::before {
@@ -1011,17 +1085,26 @@ body {
     backdrop-filter: blur(10px);
     position: relative;
     z-index: 10; /* 确保在背景层上方 */
+    /* 让商店内部可以用flex垂直排列：上方header固定，下方内容区域单独滚动 */
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    /* 防止整个商店面板产生额外的横向滚动条 */
+    overflow: hidden;
 }
 
 /* 商店头部 - 使用flex布局确保标题和按钮合理分布 */
+/* 图标裁剪原因：之前padding-right太小（仅8px），加上3个40px宽的圆形按钮和间距，导致最后一个按钮被卡片右边缘裁剪 */
 .shop-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 0;
     padding-bottom: var(--spacing-md);
     border-bottom: 2px solid rgba(255, 182, 193, 0.2);
+    /* 右侧预留足够内边距，确保所有3个圆形图标按钮（每个40px宽 + 间距）完全可见 */
+    padding-right: var(--spacing-md);
 }
 
 /* 标题组 - 将购物车图标和标题组合在一起 */
@@ -1218,6 +1301,86 @@ body {
     gap: var(--spacing-md);
 }
 
+/* 鱼鱼图鉴列表采用网格布局，与外观卡片视觉接近 */
+.fish-collection-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.fish-collection-card {
+    background: linear-gradient(135deg, rgba(176, 224, 230, 0.25) 0%, rgba(255, 182, 193, 0.25) 100%);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    border: 2px solid rgba(255, 182, 193, 0.35);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    transition: all 0.3s ease;
+}
+
+.fish-collection-card.unlocked:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.fish-collection-card.locked {
+    opacity: 0.7;
+    filter: grayscale(0.4);
+}
+
+.fish-collection-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.fish-collection-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-xs);
+}
+
+.icon--fish-collection {
+    width: 28px;
+    height: 28px;
+    color: #1E3A5F;
+}
+
+.fish-collection-icon--locked {
+    opacity: 0.5;
+}
+
+.fish-collection-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+}
+
+.fish-collection-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: var(--spacing-xs);
+}
+
+.fish-collection-source {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-light);
+}
+
+.fish-collection-count {
+    font-size: var(--font-size-sm);
+    color: var(--color-accent);
+    font-weight: var(--font-weight-medium);
+}
+
 .achievement-item {
     background: linear-gradient(135deg, rgba(176, 224, 230, 0.2) 0%, rgba(255, 182, 193, 0.2) 100%);
     border-radius: var(--radius-md);
@@ -1316,23 +1479,54 @@ body {
 }
 
 /* 升级列表 - 网格布局 */
+/* 确保列表不会超出容器宽度，防止水平滚动 */
 .upgrades-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    /* 把每张卡的最小宽度从 220px 改成 200px，整体更紧凑一些 */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--spacing-md);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* shop-body：商店内部滚动区域，只让卡片列表等内容滚动，标题与顶部按钮不参与滚动 */
+/* 滚动容器结构说明：
+ * - .shop (overflow: hidden) 作为外层容器，防止溢出
+ * - .shop-body 作为可滚动区域，使用特定技巧让滚动条紧贴白色卡片右边缘
+ * 图标裁剪原因：之前.shop-header的padding-right太小（仅8px），加上3个40px宽的圆形按钮和间距，
+ *   导致最后一个按钮被卡片右边缘裁剪。现已增加padding-right到16px。
+ */
+.shop-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    /* 填满除header以外的剩余空间 */
+    flex: 1 1 auto;
+    min-height: 0; /* 允许内部产生滚动条，而不是撑爆父容器 */
+    /* 使用特定模式让垂直滚动条紧贴白色卡片右边缘，无额外紫色间隙 */
+    /* padding-right提供滚动条空间，margin-right负值让内容延伸到滚动条下方 */
+    overflow-y: auto;
+    overflow-x: hidden; /* 禁止出现水平滚动条 */
+    padding-right: 10px;
+    padding-left: 10px;
+    padding-top: 10px;
+    box-sizing: content-box; /* 确保padding和margin计算方式正确 */
 }
 
 /* 升级卡片 - 增强的交互效果 */
 .upgrade-item {
     background: linear-gradient(135deg, rgba(176, 224, 230, 0.4) 0%, rgba(255, 182, 193, 0.4) 100%);
     border-radius: var(--radius-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);  /* 减小上下左右留白，让卡片整体小一号 */
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(255, 182, 193, 0.3);
     box-shadow: var(--shadow-sm);
     position: relative;
     overflow: hidden;
+    /* 如果你之前加过 font-size: 0.9rem; 想恢复字体大小，这行可以删掉或注释掉 */
+    /* font-size: 0.9rem; */
 }
 
 /* 卡片悬停效果 - 更明显的视觉反馈 */
@@ -1406,6 +1600,8 @@ body {
     letter-spacing: 0.2px;
     display: flex;
     align-items: center;
+    font-size: var(--font-size-sm); /* 比原来的 base 小一档 */
+    line-height: 1.3;
 }
 
 /* 升级描述 - 次要文本样式 */
@@ -1414,6 +1610,7 @@ body {
     color: var(--color-text-light);
     margin-bottom: var(--spacing-sm);
     line-height: 1.4;
+    word-break: break-word; /* 防止长文字把卡片撑出容器 */
 }
 
 /* 升级价格 - 强调色 */
@@ -1424,6 +1621,8 @@ body {
     margin-bottom: var(--spacing-xs);
     display: flex;
     align-items: center;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 /* 升级等级 - 小号文本 */
@@ -1472,23 +1671,29 @@ body {
 }
 
 /* 海星物品列表 */
+/* 确保列表不会超出容器宽度，防止水平滚动 */
 .star-upgrades-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--spacing-md);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* 海星物品卡片 - 使用金色/紫色系强调色 */
 .star-upgrade-item {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(138, 43, 226, 0.15) 100%);
     border-radius: var(--radius-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);  /* 同样减小留白 */
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid rgba(255, 215, 0, 0.4);
     box-shadow: var(--shadow-sm);
     position: relative;
     overflow: hidden;
+    /* 如果你之前加过 font-size: 0.9rem; 想恢复字体大小，这行可以删掉或注释掉 */
+    /* font-size: 0.9rem; */
 }
 
 /* 海星物品卡片悬停效果 */
@@ -1587,6 +1792,8 @@ body {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+    font-size: var(--font-size-sm); /* 比原来的 base 小一档 */
+    line-height: 1.3;
 }
 
 .star-upgrade-name .icon {
@@ -1600,6 +1807,7 @@ body {
     color: var(--color-text-light);
     margin-bottom: var(--spacing-sm);
     line-height: 1.4;
+    word-break: break-word; /* 防止长文字把卡片撑出容器 */
 }
 
 /* 海星物品下一级效果 */
@@ -1608,6 +1816,8 @@ body {
     color: var(--color-accent-gold);
     margin-top: var(--spacing-xs);
     font-weight: var(--font-weight-medium);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 /* 海星物品价格 - 使用金色强调 */
@@ -1619,6 +1829,8 @@ body {
     display: flex;
     align-items: center;
     text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .star-upgrade-cost .icon {
@@ -1810,7 +2022,7 @@ body {
         margin-bottom: var(--spacing-sm);
     }
     
-    .shop-buttons {
+    .shop-header-actions {
         width: 100%;
         justify-content: flex-end;
     }
@@ -1838,7 +2050,8 @@ body {
 /* 桌面端布局 - 侧边栏商店 */
 @media (min-width: 769px) {
     .game-container {
-        grid-template-columns: 1fr 320px;
+        /* 左边主区域自适应、右边商店固定 340px，整体已经贴在页面右侧 */
+        grid-template-columns: minmax(0, 1fr) 340px;
         grid-template-rows: auto 1fr;
     }
 
@@ -1850,33 +2063,45 @@ body {
         grid-column: 2;
         grid-row: 2;
         max-height: calc(100vh - 180px);
-        overflow-y: auto;
         position: sticky;
         top: var(--spacing-lg);
     }
+
+    /* 桌面端：仅让 shop-body 在卡片区域内部滚动，整体商店卡片保持固定位置 */
+    /* flex布局会自动处理高度，无需额外max-height限制 */
 }
 
-/* 滚动条样式 */
-.shop::-webkit-scrollbar {
-    width: 8px;
+/* shop-body 自定义垂直滚动条样式 - 确保滚动条紧贴右边缘，无底部滚动条 */
+.shop-body {
+    scrollbar-width: thin; /* Firefox 等非 WebKit 浏览器，使用细滚动条 */
+    scrollbar-color: rgba(255, 182, 193, 0.7) transparent;
 }
 
-.shop::-webkit-scrollbar-track {
-    background: var(--color-background);
-    border-radius: 4px;
+.shop-body::-webkit-scrollbar {
+    width: 8px; /* 稍微加宽滚动条以提高可点击性 */
 }
 
-.shop::-webkit-scrollbar-thumb {
-    background: var(--color-primary);
-    border-radius: 4px;
+.shop-body::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.shop::-webkit-scrollbar-thumb:hover {
-    background: #FF91A4;
+.shop-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 182, 193, 0.5);
+    border-radius: 999px;
+    border: 1px solid rgba(255, 182, 193, 0.2); /* 添加轻微边框增强可见性 */
 }
 
-/* 商店按钮组 - 右侧两个圆形按钮 */
-.shop-buttons {
+.shop-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 182, 193, 0.8);
+}
+
+/* 确保没有底部/水平滚动条 */
+.shop-body::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* 商店头部操作按钮组 - 右侧3个圆形图标按钮容器 */
+.shop-header-actions {
     display: flex;
     gap: var(--spacing-sm);
     flex-shrink: 0;
@@ -3191,6 +3416,28 @@ body {
         0 0 10px rgba(192, 192, 192, 0.5),
         0 0 20px rgba(224, 224, 224, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 宇宙鱼竿 - 深空渐变 + 轻微星云光晕 */
+.rod-cosmic .rod-line {
+    background: linear-gradient(to bottom, #2b2c4f 0%, #4B0082 45%, #7B68EE 100%);
+    box-shadow:
+        0 0 8px rgba(75, 0, 130, 0.7),
+        0 0 14px rgba(123, 104, 238, 0.6);
+    border-radius: 2px;
+    position: relative;
+}
+
+.rod-cosmic .rod-line::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    width: 2px;
+    height: 40%;
+    transform: translateX(-50%);
+    background: linear-gradient(to bottom, rgba(224, 255, 255, 0.9), transparent);
+    opacity: 0.8;
 }
 
 /* 宇宙鱼竿主屏钩子细节：在 cosmic 鱼竿选中时，在钩子附近添加一个小行星光点 */

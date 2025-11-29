@@ -30,6 +30,60 @@
         DPS_MILESTONES: [10, 50, 100, 250, 500, 1000]
     };
 
+    // ==================== 猫咪柔软度控制器 ====================
+    /**
+     * 负责控制点击挤压与空闲呼吸动画，营造“软乎乎”的手感。
+     * - handleClick(): 触发挤压动画并短暂停用呼吸，避免频繁点击导致动画叠加
+     * - 呼吸动画将在一段时间未交互后自动恢复
+     */
+    const CatSoftnessController = {
+        breathWrapper: null,
+        squashWrapper: null,
+        breathingTimeout: null,
+        breathingResumeDelay: 1200,
+        
+        init() {
+            this.breathWrapper = document.getElementById('cat-breath-wrapper');
+            this.squashWrapper = document.getElementById('cat-squash-wrapper');
+            
+            if (this.breathWrapper) {
+                this.breathWrapper.classList.add('is-breathing');
+            }
+            
+            if (this.squashWrapper) {
+                this.squashWrapper.addEventListener('animationend', (event) => {
+                    if (event.animationName === 'catClickSquash') {
+                        this.squashWrapper.classList.remove('cat-click-squash');
+                    }
+                });
+            }
+        },
+        
+        handleClick() {
+            this.triggerSquash();
+            this.pauseBreathingTemporarily();
+        },
+        
+        triggerSquash() {
+            if (!this.squashWrapper) return;
+            this.squashWrapper.classList.remove('cat-click-squash');
+            // 强制重绘以便快速重复点击也能重播动画
+            void this.squashWrapper.offsetWidth;
+            this.squashWrapper.classList.add('cat-click-squash');
+        },
+        
+        pauseBreathingTemporarily() {
+            if (!this.breathWrapper) return;
+            this.breathWrapper.classList.remove('is-breathing');
+            if (this.breathingTimeout) {
+                clearTimeout(this.breathingTimeout);
+            }
+            this.breathingTimeout = setTimeout(() => {
+                this.breathWrapper.classList.add('is-breathing');
+            }, this.breathingResumeDelay);
+        }
+    };
+
     // ==================== 游戏状态管理 ====================
     const GameState = {
         fish: 0,                    // 当前鱼鱼数量
@@ -39,7 +93,12 @@
         prestigeBonus: 0,           // 转生永久加成（倍数，如0.1表示+10%）
         seaStars: 0,                // 海星货币（转生获得）
         globalMultiplier: 1.0,      // 全局倍率（来自猫猫伙伴）
-        starBonusMultiplier: 1.0,  // 海星物品全局倍率加成（独立于转生加成）
+        starBonusMultiplier: 1.0,   // 海星物品全局倍率加成（独立于转生加成）
+        // 鱼鱼图鉴加成：
+        // - fishCollectionBonusMultiplier: 图鉴里程碑提供的全局收益倍率（例如每条鱼100次里程碑+1%）
+        // - fishCollectionCritBonus: 图鉴里程碑提供的额外暴击率（例如每条相关鱼100次里程碑+0.5%）
+        fishCollectionBonusMultiplier: 1.0,
+        fishCollectionCritBonus: 0.0,
         unlockedAchievements: new Set(),  // 已解锁的成就
         unlockedDpsMilestones: new Set(), // 已触发的DPS里程碑
         
@@ -188,6 +247,16 @@
                 }
             }
         },
+
+        // 鱼鱼图鉴数据（按鱼ID索引，在 FishCollection.init 中填充）
+        // 结构示例：
+        // fishCollection: {
+        //   default: { id: 'default', caughtCount: 0, unlocked: false, milestone100Granted: false },
+        //   koi:     { ... },
+        //   ...
+        // }
+        fishCollection: {},
+        fishCollectionGlobalRewardUnlocked: false, // 是否已获得全局图鉴奖励
         
         autoFishingActive: false,   // 自动钓鱼是否激活
         muted: false                // 是否静音
@@ -202,6 +271,9 @@
         prestigeBonusItem: document.getElementById('prestige-bonus-item'),
         prestigeBtn: document.getElementById('prestige-btn'),
         cat: document.getElementById('cat'),
+        catMotionWrapper: document.getElementById('cat-motion-wrapper'),
+        catBreathWrapper: document.getElementById('cat-breath-wrapper'),
+        catSquashWrapper: document.getElementById('cat-squash-wrapper'),
         floatingTexts: document.getElementById('floating-texts'),
         upgradesList: document.getElementById('upgrades-list'),
         muteBtn: document.getElementById('mute-btn'),
@@ -216,12 +288,19 @@
         cosmeticsPanel: document.getElementById('cosmetics-panel'),
         cosmeticsList: document.getElementById('cosmetics-list'),
         closeCosmetics: document.getElementById('close-cosmetics'),
+        // 鱼鱼图鉴面板相关
+        fishCollectionBtn: document.getElementById('fish-collection-btn'),
+        fishCollectionPanel: document.getElementById('fish-collection-panel'),
+        fishCollectionList: document.getElementById('fish-collection-list'),
+        closeFishCollection: document.getElementById('close-fish-collection'),
         prestigeModal: document.getElementById('prestige-modal'),
         prestigeModalStars: document.getElementById('prestige-modal-stars'),
         prestigeConfirm: document.getElementById('prestige-confirm'),
         prestigeCancel: document.getElementById('prestige-cancel'),
         seaStars: document.getElementById('sea-stars'),
         seaStarsItem: document.getElementById('sea-stars-item'),
+        // 图鉴全局奖励徽章
+        fishCollectionBadge: document.getElementById('fish-collection-badge'),
         milestoneBubbles: document.getElementById('milestone-bubbles'),
         starShopSection: document.getElementById('star-shop-section'),
         starUpgradesList: document.getElementById('star-upgrades-list'),
@@ -251,7 +330,9 @@
             const prestigeMultiplier = 1.0 + GameState.prestigeBonus;
             // 海星物品加成：深海罗盘提供的全局倍率
             const starMultiplier = GameState.starBonusMultiplier;
-            return baseClickPower * globalMultiplier * prestigeMultiplier * starMultiplier;
+            // 鱼鱼图鉴加成：每条鱼达到里程碑提供的全局收益倍率
+            const collectionMultiplier = GameState.fishCollectionBonusMultiplier;
+            return baseClickPower * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier;
         },
         
         /**
@@ -265,7 +346,9 @@
             const prestigeMultiplier = 1.0 + GameState.prestigeBonus;
             // 海星物品加成：深海罗盘提供的全局倍率
             const starMultiplier = GameState.starBonusMultiplier;
-            return baseAutoFishing * globalMultiplier * prestigeMultiplier * starMultiplier;
+            // 鱼鱼图鉴加成：每条鱼达到里程碑提供的全局收益倍率
+            const collectionMultiplier = GameState.fishCollectionBonusMultiplier;
+            return baseAutoFishing * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier;
         },
         
         /**
@@ -280,7 +363,9 @@
             const necklaceBonus = GameState.starUpgrades.luckyNecklace.getCritChance(
                 GameState.starUpgrades.luckyNecklace.level
             );
-            return Math.min(baseCritChance + necklaceBonus, 1.0); // 最大100%
+            // 鱼鱼图鉴里程碑提供的额外暴击率
+            const collectionCritBonus = GameState.fishCollectionCritBonus;
+            return Math.min(baseCritChance + necklaceBonus + collectionCritBonus, 1.0); // 最大100%
         }
     };
 
@@ -401,6 +486,18 @@
             if (GameState.seaStars > 0) {
                 elements.seaStarsItem.style.display = 'flex';
                 elements.seaStars.textContent = GameState.seaStars.toLocaleString();
+            }
+        },
+
+        /**
+         * 更新鱼鱼图鉴全局奖励徽章显示
+         */
+        updateFishCollectionBadge() {
+            if (!elements.fishCollectionBadge) return;
+            if (GameState.fishCollectionGlobalRewardUnlocked) {
+                elements.fishCollectionBadge.style.display = 'flex';
+            } else {
+                elements.fishCollectionBadge.style.display = 'none';
             }
         },
 
@@ -721,6 +818,247 @@
             { id: 'aurora', name: '极光之夜', gradient: 'linear-gradient(135deg, #0F0C29 0%, #302B63 30%, #24243e 60%, #0F0C29 100%)', requirement: { type: 'collectorMedal' }, isRare: true, hasAmbientEffect: true },
             { id: 'dream', name: '梦境海湾', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)', requirement: { type: 'collectorMedal' }, isRare: true, hasAmbientEffect: true }
         ]
+    };
+
+    // ==================== 鱼鱼图鉴系统 ====================
+    /**
+     * 鱼鱼图鉴定义：
+     * - 使用外观系统中的 fishIcons 作为唯一ID来源，保持与主屏鱼图标一致
+     * - 每种鱼记录：
+     *   id: 鱼ID（default/koi/puffer/shark/dragon）
+     *   name: 展示名称
+     *   sourceType: 掉落来源类型（normal/crit/specialEvent）
+     *   caughtCount: 累计钓到数量
+     *   unlocked: 是否至少钓到1条
+     *   milestone100Granted: 是否已经发放过100条里程碑奖励，避免重复加成
+     */
+    const FishCollection = {
+        // 静态定义：来源类型和里程碑奖励类型
+        _definitions: CosmeticDefinitions.fishIcons.map(fish => {
+            let sourceType = 'normal';
+            let milestoneType = 'income'; // income: 全局收益加成, crit: 暴击率加成
+            if (fish.id === 'shark') {
+                sourceType = 'crit';
+                milestoneType = 'crit';
+            } else if (fish.id === 'dragon') {
+                sourceType = 'specialEvent';
+                milestoneType = 'crit';
+            }
+            return {
+                id: fish.id,
+                name: fish.name,
+                sourceType,
+                milestoneType
+            };
+        }),
+
+        /**
+         * 初始化图鉴数据（在加载存档之后调用）
+         * 确保 GameState.fishCollection 拥有所有鱼条目，兼容旧存档
+         */
+        init() {
+            if (!GameState.fishCollection || typeof GameState.fishCollection !== 'object') {
+                GameState.fishCollection = {};
+            }
+
+            this._definitions.forEach(def => {
+                if (!GameState.fishCollection[def.id]) {
+                    GameState.fishCollection[def.id] = {
+                        id: def.id,
+                        caughtCount: 0,
+                        unlocked: false,
+                        milestone100Granted: false
+                    };
+                } else {
+                    // 兼容旧数据缺失字段
+                    const entry = GameState.fishCollection[def.id];
+                    if (typeof entry.caughtCount !== 'number') entry.caughtCount = 0;
+                    if (typeof entry.unlocked !== 'boolean') entry.unlocked = entry.caughtCount > 0;
+                    if (typeof entry.milestone100Granted !== 'boolean') entry.milestone100Granted = false;
+                }
+            });
+
+            // 兼容旧存档中未保存加成字段
+            if (typeof GameState.fishCollectionBonusMultiplier !== 'number' || GameState.fishCollectionBonusMultiplier <= 0) {
+                GameState.fishCollectionBonusMultiplier = 1.0;
+            }
+            if (typeof GameState.fishCollectionCritBonus !== 'number') {
+                GameState.fishCollectionCritBonus = 0.0;
+            }
+            if (typeof GameState.fishCollectionGlobalRewardUnlocked !== 'boolean') {
+                GameState.fishCollectionGlobalRewardUnlocked = false;
+            }
+        },
+
+        /**
+         * 在加载存档时合并图鉴数据
+         * @param {Object|null} savedCollection 从存档读取的鱼鱼图鉴数据
+         */
+        loadFromSave(savedCollection) {
+            if (savedCollection && typeof savedCollection === 'object') {
+                GameState.fishCollection = savedCollection;
+            }
+            this.init();
+        },
+
+        /**
+         * 导出用于存档的纯数据结构
+         */
+        exportForSave() {
+            return GameState.fishCollection;
+        },
+
+        /**
+         * 记录一次钓鱼
+         * @param {string} fishId 当前鱼ID（与 CosmeticDefinitions.fishIcons.id 对应）
+         * @param {Object} options 附加信息（例如是否暴击）
+         */
+        recordCatch(fishId, options = {}) {
+            if (!fishId) return;
+            this.init();
+
+            const entry = GameState.fishCollection[fishId];
+            if (!entry) return;
+
+            entry.caughtCount += 1;
+            if (!entry.unlocked && entry.caughtCount > 0) {
+                entry.unlocked = true;
+            }
+
+            // 每次记录钓鱼后检查里程碑与全局奖励
+            this.checkMilestones(fishId);
+            this.checkGlobalReward();
+        },
+
+        /**
+         * 检查并触发每条鱼的里程碑奖励（当前仅 100 条）
+         * 奖励示例：
+         * - income: +1% 全局收益（乘到 fishCollectionBonusMultiplier 上）
+         * - crit: +0.5% 暴击率（累加到 fishCollectionCritBonus 上）
+         */
+        checkMilestones(fishId) {
+            const def = this._definitions.find(d => d.id === fishId);
+            const entry = GameState.fishCollection[fishId];
+            if (!def || !entry) return;
+
+            if (entry.caughtCount >= 100 && !entry.milestone100Granted) {
+                entry.milestone100Granted = true;
+
+                if (def.milestoneType === 'income') {
+                    // 每条鱼第一个100次 -> +1% 全局收益（图鉴专属倍率）
+                    GameState.fishCollectionBonusMultiplier *= 1.01;
+                } else if (def.milestoneType === 'crit') {
+                    // 与暴击相关的鱼 -> +0.5% 暴击率
+                    GameState.fishCollectionCritBonus += 0.005;
+                }
+
+                // 数值发生变化后，更新UI上的DPS/点击显示
+                UIRenderer.updateFishPerClick(true);
+                UIRenderer.updateFishPerSecond();
+            }
+        },
+
+        /**
+         * 检查全局图鉴奖励：
+         * - 条件：解锁的鱼种数量 >= 3（或全部鱼都已解锁）
+         * - 效果：开启一个 UI 徽章（以及未来可扩展为解锁额外外观）
+         */
+        checkGlobalReward() {
+            if (GameState.fishCollectionGlobalRewardUnlocked) return;
+
+            const total = this._definitions.length;
+            const unlockedCount = this._definitions.reduce((acc, def) => {
+                const entry = GameState.fishCollection[def.id];
+                return acc + (entry && entry.unlocked ? 1 : 0);
+            }, 0);
+
+            // 至少解锁前3条鱼，或全部鱼都解锁时触发
+            if (unlockedCount >= 3 || unlockedCount === total) {
+                GameState.fishCollectionGlobalRewardUnlocked = true;
+                // 更新徽章显示
+                UIRenderer.updateFishCollectionBadge();
+            }
+        },
+
+        /**
+         * 打开图鉴面板
+         */
+        showPanel() {
+            if (!elements.fishCollectionPanel) return;
+            this.renderPanel();
+            elements.fishCollectionPanel.style.display = 'flex';
+        },
+
+        /**
+         * 关闭图鉴面板
+         */
+        hidePanel() {
+            if (!elements.fishCollectionPanel) return;
+            elements.fishCollectionPanel.style.display = 'none';
+        },
+
+        /**
+         * 渲染图鉴面板内容
+         */
+        renderPanel() {
+            if (!elements.fishCollectionList) return;
+            this.init();
+
+            elements.fishCollectionList.innerHTML = '';
+
+            this._definitions.forEach(def => {
+                const entry = GameState.fishCollection[def.id];
+                const unlocked = entry && entry.unlocked;
+                const caughtCount = entry ? entry.caughtCount : 0;
+
+                const card = document.createElement('div');
+                card.className = `fish-collection-card ${unlocked ? 'unlocked' : 'locked'}`;
+
+                // 选择列表中的小图标（与主屏实心鱼图标保持一致）
+                let iconId = 'icon-main-fish-koi';
+                if (def.id === 'default') iconId = 'icon-main-fish-koi';
+                else if (def.id === 'koi') iconId = 'icon-main-fish-koi-lucky';
+                else if (def.id === 'puffer') iconId = 'icon-main-fish-puffer';
+                else if (def.id === 'shark') iconId = 'icon-main-fish-shark';
+                else if (def.id === 'dragon') iconId = 'icon-main-fish-dragon';
+
+                const displayName = unlocked ? def.name : '？？？';
+
+                let sourceText = '';
+                if (unlocked) {
+                    if (def.sourceType === 'normal') {
+                        sourceText = '掉落来源：普通状态';
+                    } else if (def.sourceType === 'crit') {
+                        sourceText = '掉落来源：暴击';
+                    } else if (def.sourceType === 'specialEvent') {
+                        sourceText = '掉落来源：特殊事件';
+                    }
+                } else {
+                    sourceText = '掉落来源：尚未发现';
+                }
+
+                const countText = unlocked
+                    ? `共钓到 ${caughtCount.toLocaleString()} 条`
+                    : '共钓到 0 条';
+
+                card.innerHTML = `
+                    <div class="fish-collection-card-header">
+                        <div class="fish-collection-icon-wrapper">
+                            <svg class="icon icon--fish-collection ${unlocked ? '' : 'fish-collection-icon--locked'}">
+                                <use href="#${iconId}"></use>
+                            </svg>
+                        </div>
+                        <div class="fish-collection-name">${displayName}</div>
+                    </div>
+                    <div class="fish-collection-meta">
+                        <div class="fish-collection-source">${sourceText}</div>
+                        <div class="fish-collection-count">${countText}</div>
+                    </div>
+                `;
+
+                elements.fishCollectionList.appendChild(card);
+            });
+        }
     };
 
     // ==================== 外观管理器 ====================
@@ -2569,6 +2907,7 @@
     const CatFollowController = {
         // DOM元素引用
         followWrapper: null,
+        motionWrapper: null,
         mainContent: null,
         
         // 配置参数
@@ -2590,6 +2929,7 @@
          */
         init() {
             this.followWrapper = document.getElementById('cat-follow-wrapper');
+            this.motionWrapper = document.getElementById('cat-motion-wrapper');
             this.mainContent = document.querySelector('.main-content');
             
             if (!this.followWrapper || !this.mainContent) {
@@ -2692,6 +3032,8 @@
          */
         startAnimationLoop() {
             const update = () => {
+                const prevTransform = { ...this.currentTransform };
+
                 // 线性插值(lerp)从当前值到目标值
                 this.currentTransform.x = this.lerp(
                     this.currentTransform.x,
@@ -2710,7 +3052,12 @@
                 );
                 
                 // 应用transform
-                this.applyTransform();
+                const velocity = {
+                    x: this.currentTransform.x - prevTransform.x,
+                    y: this.currentTransform.y - prevTransform.y,
+                    rotate: this.currentTransform.rotate - prevTransform.rotate
+                };
+                this.applyTransform(velocity);
                 
                 // 继续循环
                 this.rafId = requestAnimationFrame(update);
@@ -2734,7 +3081,8 @@
         /**
          * 应用transform到包装器
          */
-        applyTransform() {
+        applyTransform(velocity = { x: 0, y: 0, rotate: 0 }) {
+            if (!this.followWrapper) return;
             const { x, y, rotate } = this.currentTransform;
             
             // 使用transform组合translate和rotate
@@ -2742,6 +3090,29 @@
                 translate(${x}px, ${y}px)
                 rotate(${rotate}deg)
             `;
+
+            // 依据速度添加柔和的橡皮抖动
+            if (this.motionWrapper) {
+                const wobbleX = this.clamp(velocity.x * 0.04, -0.05, 0.05);
+                const wobbleY = this.clamp(velocity.y * 0.04, -0.04, 0.04);
+                const wobbleRotate = this.clamp(velocity.rotate * 0.6, -4, 4);
+                const scaleX = 1 + wobbleX;
+                const scaleY = 1 - Math.abs(wobbleX) * 0.4 + wobbleY * 0.15;
+                this.motionWrapper.style.transform = `
+                    scaleX(${scaleX})
+                    scaleY(${scaleY})
+                    rotate(${wobbleRotate}deg)
+                `;
+            }
+
+            // 更新自定义属性，让耳朵与脸部微动
+            this.followWrapper.style.setProperty('--cat-tilt', `${rotate}deg`);
+            this.followWrapper.style.setProperty('--cat-face-shift-x', `${this.currentTransform.x * 0.1}px`);
+            this.followWrapper.style.setProperty('--cat-face-shift-y', `${this.currentTransform.y * 0.05}px`);
+        },
+
+        clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
         },
         
         /**
@@ -2764,11 +3135,17 @@
             SoundManager.init();
             this.bindEvents();
             
+            // 初始化鱼鱼图鉴（在加载存档之后，确保数据结构完整）
+            FishCollection.init();
+
             // 初始化背景效果系统（视差和浮动元素）
             BackgroundEffectsManager.init();
             
             // 初始化猫咪表情管理器
             CatExpressionManager.init();
+            
+            // 初始化柔软控制器（呼吸+squash）
+            CatSoftnessController.init();
             
             // 初始化眼睛瞥视控制器
             EyeGlanceController.init();
@@ -2791,6 +3168,7 @@
             UIRenderer.updateFishPerSecond();
             UIRenderer.updatePrestigeBonus();
             UIRenderer.updateSeaStars();
+            UIRenderer.updateFishCollectionBadge();
             UIRenderer.renderUpgrades();
             UIRenderer.renderStarShop(); // 渲染海星商店
             UIRenderer.updateMuteButton();
@@ -2844,6 +3222,18 @@
             elements.closeCosmetics.addEventListener('click', () => {
                 CosmeticManager.hidePanel();
             });
+
+            // 鱼鱼图鉴按钮打开/关闭面板
+            if (elements.fishCollectionBtn && elements.fishCollectionPanel) {
+                elements.fishCollectionBtn.addEventListener('click', () => {
+                    FishCollection.showPanel();
+                });
+            }
+            if (elements.closeFishCollection && elements.fishCollectionPanel) {
+                elements.closeFishCollection.addEventListener('click', () => {
+                    FishCollection.hidePanel();
+                });
+            }
             
             elements.prestigeBtn.addEventListener('click', () => {
                 this.openPrestigeModal();
@@ -2865,6 +3255,8 @@
         handleCatClick(e) {
             // 记录点击到表情管理器
             CatExpressionManager.recordClick();
+            // 通知柔软控制器触发挤压动画并暂时停顿呼吸
+            CatSoftnessController.handleClick();
             
             // 动画效果
             elements.cat.classList.remove('clicking');
@@ -2907,6 +3299,10 @@
             const actualGain = Math.floor(baseGain);
             GameState.fish += actualGain;
             GameState.totalFishEarned += actualGain;
+
+            // 在主屏成功钓到鱼时，更新鱼鱼图鉴数据
+            // 使用当前选中的鱼图标ID作为鱼类型ID，与外观系统保持一致
+            FishCollection.recordCatch(GameState.cosmetics.selected.fishIcon, { isCrit });
 
             // 检查成就和外观解锁
             AchievementManager.checkAchievements();
@@ -3224,6 +3620,11 @@
                             backgrounds: Array.from(GameState.cosmetics.unlocked.backgrounds)
                         }
                     },
+                    // 鱼鱼图鉴存档数据
+                    fishCollection: FishCollection.exportForSave(),
+                    fishCollectionBonusMultiplier: GameState.fishCollectionBonusMultiplier,
+                    fishCollectionCritBonus: GameState.fishCollectionCritBonus,
+                    fishCollectionGlobalRewardUnlocked: GameState.fishCollectionGlobalRewardUnlocked,
                     muted: GameState.muted
                 };
                 
@@ -3271,6 +3672,17 @@
                     GameState.unlockedAchievements = new Set(data.unlockedAchievements || []);
                     GameState.unlockedDpsMilestones = new Set(data.unlockedDpsMilestones || []);
                     GameState.muted = data.muted || false;
+
+                    // 加载鱼鱼图鉴相关加成（向后兼容：若不存在则保持默认值）
+                    if (typeof data.fishCollectionBonusMultiplier === 'number' && data.fishCollectionBonusMultiplier > 0) {
+                        GameState.fishCollectionBonusMultiplier = data.fishCollectionBonusMultiplier;
+                    }
+                    if (typeof data.fishCollectionCritBonus === 'number') {
+                        GameState.fishCollectionCritBonus = data.fishCollectionCritBonus;
+                    }
+                    if (typeof data.fishCollectionGlobalRewardUnlocked === 'boolean') {
+                        GameState.fishCollectionGlobalRewardUnlocked = data.fishCollectionGlobalRewardUnlocked;
+                    }
                     
                     // 加载外观状态
                     if (data.cosmetics) {
@@ -3293,6 +3705,9 @@
                             }
                         }
                     }
+
+                    // 加载鱼鱼图鉴数据（在加载完基础GameState后调用）
+                    FishCollection.loadFromSave(data.fishCollection || null);
                     
                     // 加载升级状态
                     if (data.upgrades) {
