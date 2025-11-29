@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫咪钓鱼点击游戏 🐱</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 顶部状态栏 -->
+        <header class="header">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">🐟 鱼鱼数量</span>
+                    <span id="fish-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🎣 每次点击</span>
+                    <span id="fish-per-click" class="stat-value">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">⚡ 每秒获得</span>
+                    <span id="fish-per-second" class="stat-value">0</span>
+                </div>
+                <div class="stat-item" id="prestige-bonus-item" style="display: none;">
+                    <span class="stat-label">✨ 转生加成</span>
+                    <span id="prestige-bonus" class="stat-value">+0%</span>
+                </div>
+            </div>
+            <button id="mute-btn" class="mute-btn" aria-label="静音/取消静音">🔊</button>
+        </header>
+
+        <!-- 主游戏区域 -->
+        <main class="main-content">
+            <!-- 猫咪点击区域 -->
+            <div class="cat-container">
+                <div id="cat" class="cat">
+                    <div class="cat-face">
+                        <div class="cat-ear cat-ear-left"></div>
+                        <div class="cat-ear cat-ear-right"></div>
+                        <div class="cat-head">
+                            <div class="cat-eye cat-eye-left"></div>
+                            <div class="cat-eye cat-eye-right"></div>
+                            <div class="cat-nose"></div>
+                            <div class="cat-mouth"></div>
+                        </div>
+                    </div>
+                    <div class="fishing-rod" id="fishing-rod">
+                        <div class="rod-line"></div>
+                        <div class="rod-hook" id="rod-hook">🐟</div>
+                    </div>
+                </div>
+                <div class="cat-hint">点击猫咪开始钓鱼吧！🐱</div>
+            </div>
+
+            <!-- 浮动文字容器 -->
+            <div id="floating-texts" class="floating-texts"></div>
+            <!-- 鱼图标动画容器 -->
+            <div id="fish-animation-container" class="fish-animation-container"></div>
+        </main>
+
+        <!-- 升级商店 -->
+        <aside class="shop">
+            <div class="shop-header">
+                <h2 class="shop-title">🛒 喵喵商店</h2>
+                <button id="achievements-btn" class="achievements-btn" title="查看成就">🏆</button>
+            </div>
+            <div id="upgrades-list" class="upgrades-list">
+                <!-- 升级项将通过 JavaScript 动态生成 -->
+            </div>
+            <div class="reset-section">
+                <button id="prestige-btn" class="prestige-btn" style="display: none;">🔄 转生</button>
+            </div>
+        </aside>
+
+        <!-- 成就面板 -->
+        <div id="achievements-panel" class="achievements-panel" style="display: none;">
+            <div class="achievements-header">
+                <h2>🏆 里程碑成就</h2>
+                <button id="close-achievements" class="close-btn">✕</button>
+            </div>
+            <div id="achievements-list" class="achievements-list">
+                <!-- 成就项将通过 JavaScript 动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
