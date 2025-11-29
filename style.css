@@ -272,6 +272,93 @@ body {
     position: relative;
     min-height: 350px;
     padding: var(--spacing-lg);
+    overflow: hidden; /* 防止背景元素溢出 */
+}
+
+/* ========== 背景层系统 ==========
+ * 背景层结构说明：
+ * - background-layer--far: 远层，移动速度较慢，用于深度感
+ * - background-layer--near: 近层，移动速度较快，增强视差效果
+ * 视差效果通过JS计算鼠标位置，使用transform: translateX实现，避免layout thrashing
+ */
+.background-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* 不阻挡点击事件 */
+    z-index: 0; /* 在猫咪和商店面板后面 */
+    will-change: transform; /* GPU加速 */
+}
+
+/* 远层：移动速度较慢 */
+.background-layer--far {
+    z-index: 0;
+}
+
+/* 近层：移动速度较快 */
+.background-layer--near {
+    z-index: 1;
+}
+
+/* ========== 浮动元素系统 ==========
+ * 浮动元素说明：
+ * - ambient-bubble: 气泡元素，柔和圆形，低透明度
+ * - ambient-blob: 抽象云朵/海雾元素，不规则形状，更低透明度
+ * 使用CSS动画实现平滑移动，随机化速度和位置通过JS设置CSS变量
+ */
+.ambient-bubble,
+.ambient-blob {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    will-change: transform, opacity; /* GPU友好的属性 */
+}
+
+/* 气泡元素 - 柔和圆形气泡 */
+.ambient-bubble {
+    background: radial-gradient(circle, rgba(176, 224, 230, 0.15) 0%, rgba(255, 182, 193, 0.1) 100%);
+    border: 1px solid rgba(176, 224, 230, 0.2);
+    filter: blur(1px);
+}
+
+/* 抽象云朵/海雾元素 - 更大的不规则形状 */
+.ambient-blob {
+    background: radial-gradient(ellipse, rgba(255, 182, 193, 0.1) 0%, rgba(176, 224, 230, 0.08) 100%);
+    border: 1px solid rgba(255, 182, 193, 0.15);
+    filter: blur(2px);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; /* 不规则形状 */
+}
+
+/* 浮动动画 - 使用CSS变量实现随机速度和位置
+ * 动画说明：
+ * - 元素从起始位置平滑移动到结束位置
+ * - 在10%-90%之间保持最大透明度，创造淡入淡出效果
+ * - 使用linear时间函数实现匀速移动
+ * - infinite循环，元素会重新开始动画
+ */
+@keyframes floatBubble {
+    0% {
+        transform: translate(var(--start-x), var(--start-y)) scale(var(--scale));
+        opacity: 0;
+    }
+    10% {
+        opacity: var(--max-opacity);
+    }
+    90% {
+        opacity: var(--max-opacity);
+    }
+    100% {
+        transform: translate(var(--end-x), var(--end-y)) scale(var(--scale));
+        opacity: 0;
+    }
+}
+
+/* 应用浮动动画 */
+.ambient-bubble,
+.ambient-blob {
+    animation: floatBubble var(--duration) linear infinite;
 }
 
 .cat-container {
@@ -279,6 +366,15 @@ body {
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-lg);
+    position: relative;
+    z-index: 10; /* 确保在背景层上方 */
+}
+
+/* 猫咪跟随包装器 - 用于应用鼠标跟随transform */
+.cat-follow-wrapper {
+    position: relative;
+    will-change: transform; /* GPU加速 */
+    /* 不使用CSS transition,由JS的requestAnimationFrame实现平滑插值 */
 }
 
 /* 猫咪 CSS 艺术 - 优化的点击动画（"boop"效果） */
@@ -413,6 +509,168 @@ body {
     top: 120px;
     left: 50%;
     transform: translateX(-50%);
+    transition: all 0.3s ease;
+}
+
+/* 猫咪眉毛 - 用于表达不同情绪 */
+.cat-eyebrow {
+    position: absolute;
+    width: 20px;
+    height: 4px;
+    background: var(--color-text);
+    border-radius: 2px;
+    top: 60px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.cat-eyebrow-left {
+    left: 55px;
+    transform: rotate(-10deg);
+}
+
+.cat-eyebrow-right {
+    right: 55px;
+    transform: rotate(10deg);
+}
+
+/* 猫咪腮红 - 用于表达兴奋或害羞 */
+.cat-blush {
+    position: absolute;
+    width: 30px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(255, 182, 193, 0.6) 0%, transparent 70%);
+    border-radius: 50%;
+    top: 90px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.cat-blush-left {
+    left: 30px;
+}
+
+.cat-blush-right {
+    right: 30px;
+}
+
+/* ========== 表情状态样式 ========== */
+
+/* idle_normal: 默认开心脸 - 大眼睛,微笑嘴,无特殊特征 */
+.cat--idle-normal .cat-eye {
+    width: 30px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.cat--idle-normal .cat-mouth {
+    width: 40px;
+    height: 20px;
+    border-radius: 0 0 40px 40px;
+}
+
+.cat--idle-normal .cat-eyebrow,
+.cat--idle-normal .cat-blush {
+    opacity: 0;
+}
+
+/* idle_sleepy: 困倦脸 - 半闭眼睛,下垂眉毛,小嘴 */
+.cat--idle-sleepy .cat-eye {
+    width: 30px;
+    height: 8px;
+    border-radius: 15px;
+    top: 76px;
+    animation: none; /* 停止眨眼动画 */
+}
+
+.cat--idle-sleepy .cat-eyebrow {
+    opacity: 1;
+    transform: rotate(15deg);
+    top: 58px;
+}
+
+.cat--idle-sleepy .cat-eyebrow-left {
+    transform: rotate(15deg);
+}
+
+.cat--idle-sleepy .cat-eyebrow-right {
+    transform: rotate(-15deg);
+}
+
+.cat--idle-sleepy .cat-mouth {
+    width: 30px;
+    height: 15px;
+    border-radius: 0 0 30px 30px;
+    top: 125px;
+}
+
+.cat--idle-sleepy .cat-blush {
+    opacity: 0;
+}
+
+/* excited: 兴奋脸 - 大眼睛,大笑嘴,腮红 */
+.cat--excited .cat-eye {
+    width: 35px;
+    height: 45px;
+    border-radius: 50%;
+    top: 68px;
+}
+
+.cat--excited .cat-mouth {
+    width: 50px;
+    height: 30px;
+    border-radius: 0 0 50px 50px;
+    top: 118px;
+}
+
+.cat--excited .cat-blush {
+    opacity: 1;
+    width: 35px;
+    height: 25px;
+}
+
+.cat--excited .cat-eyebrow {
+    opacity: 0;
+}
+
+/* crit: 暴击脸 - 超大眼睛,张大嘴,明显腮红,星星眼效果 */
+.cat--crit .cat-eye {
+    width: 40px;
+    height: 50px;
+    border-radius: 50%;
+    top: 65px;
+    animation: critSparkle 0.5s ease-in-out;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+.cat--crit .cat-mouth {
+    width: 55px;
+    height: 35px;
+    border-radius: 0 0 55px 55px;
+    top: 115px;
+    border-width: 4px;
+}
+
+.cat--crit .cat-blush {
+    opacity: 1;
+    width: 40px;
+    height: 30px;
+    background: radial-gradient(circle, rgba(255, 107, 107, 0.8) 0%, transparent 70%);
+}
+
+.cat--crit .cat-eyebrow {
+    opacity: 0;
+}
+
+@keyframes critSparkle {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 25px rgba(255, 215, 0, 1);
+    }
 }
 
 /* 钓鱼竿 - 基础摆动动画 */
@@ -573,25 +831,39 @@ body {
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 182, 193, 0.2);
     backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 10; /* 确保在背景层上方 */
 }
 
+/* 商店头部 - 使用flex布局确保标题和按钮合理分布 */
 .shop-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
     border-bottom: 2px solid rgba(255, 182, 193, 0.2);
 }
 
+/* 标题组 - 将购物车图标和标题组合在一起 */
+.shop-title-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+    min-width: 0; /* 允许flex子元素收缩 */
+}
+
+/* 商店标题 - 确保标题文本不换行 */
 .shop-title {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text);
     letter-spacing: -0.5px;
     margin: 0;
-    display: flex;
-    align-items: center;
+    white-space: nowrap; /* 确保"喵喵商店"保持在一行 */
+    flex-shrink: 0;
 }
 
 .achievements-btn {
@@ -728,23 +1000,38 @@ body {
     align-items: center;
 }
 
+/* 关闭按钮 - 更大的点击区域，使用SVG图标 */
 .close-btn {
     background: var(--color-secondary);
     border: none;
     border-radius: var(--radius-full);
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    padding: var(--spacing-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
 }
 
 .close-btn:hover {
     background: var(--color-primary);
     transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.close-btn:active {
+    transform: scale(0.95);
+}
+
+/* 关闭图标样式 */
+.icon--close {
+    width: 20px;
+    height: 20px;
+    color: var(--color-text);
 }
 
 .achievements-list {
@@ -969,6 +1256,232 @@ body {
     font-weight: var(--font-weight-medium);
 }
 
+/* ========== 海星商店样式 ==========
+ * 海星商店与普通鱼币商店的区别：
+ * - 使用金色/紫色系强调色（区别于普通商店的粉色/蓝色系）
+ * - 使用海星图标而非硬币图标
+ * - 提供永久加成，转生后保留
+ */
+
+/* 海星商店区域 */
+.star-shop-section {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 3px solid rgba(255, 215, 0, 0.3);
+}
+
+/* 海星商店标题 */
+.star-shop-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+}
+
+.star-shop-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-accent-gold);
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.star-shop-header .icon {
+    color: var(--color-accent-gold);
+    filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.4));
+}
+
+/* 海星物品列表 */
+.star-upgrades-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+}
+
+/* 海星物品卡片 - 使用金色/紫色系强调色 */
+.star-upgrade-item {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(138, 43, 226, 0.15) 100%);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 海星物品卡片悬停效果 */
+.star-upgrade-item:hover:not(.disabled):not(.max-level):not(.purchased) {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.4),
+        var(--shadow-lg);
+    border-color: var(--color-accent-gold);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
+}
+
+/* 海星物品卡片点击效果 */
+.star-upgrade-item:active:not(.disabled):not(.max-level):not(.purchased) {
+    transform: translateY(-2px) scale(0.98);
+    box-shadow: var(--shadow-sm);
+}
+
+/* 海星物品购买成功反馈 */
+.star-upgrade-item.purchased {
+    animation: starUpgradePurchaseGlow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes starUpgradePurchaseGlow {
+    0% {
+        box-shadow: var(--shadow-sm);
+        border-color: rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+    30% {
+        box-shadow: 
+            0 0 25px rgba(255, 215, 0, 0.7),
+            0 8px 24px rgba(138, 43, 226, 0.4),
+            var(--shadow-lg);
+        border-color: var(--color-accent-gold);
+        transform: scale(1.05);
+    }
+    60% {
+        box-shadow: 
+            0 0 35px rgba(255, 215, 0, 0.5),
+            0 8px 24px rgba(138, 43, 226, 0.3),
+            var(--shadow-md);
+        border-color: rgba(138, 43, 226, 0.6);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: var(--shadow-sm);
+        border-color: rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+}
+
+/* 禁用状态 - 海星不足或已达到最大等级 */
+.star-upgrade-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%);
+    border-color: var(--color-border);
+}
+
+.star-upgrade-item.disabled:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-border);
+}
+
+/* 最大等级状态 */
+.star-upgrade-item.max-level {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(138, 43, 226, 0.25) 100%);
+    border-color: rgba(255, 215, 0, 0.6);
+    cursor: default;
+}
+
+.star-upgrade-item.max-level:hover {
+    transform: none;
+}
+
+/* 已购买状态 */
+.star-upgrade-item.purchased {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(138, 43, 226, 0.2) 100%);
+    border-color: rgba(138, 43, 226, 0.5);
+    cursor: default;
+}
+
+.star-upgrade-item.purchased:hover {
+    transform: none;
+}
+
+/* 海星物品名称 */
+.star-upgrade-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text);
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.star-upgrade-name .icon {
+    color: var(--color-accent-gold);
+    filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.4));
+}
+
+/* 海星物品描述 */
+.star-upgrade-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.4;
+}
+
+/* 海星物品下一级效果 */
+.star-upgrade-next-effect {
+    font-size: var(--font-size-xs);
+    color: var(--color-accent-gold);
+    margin-top: var(--spacing-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+/* 海星物品价格 - 使用金色强调 */
+.star-upgrade-cost {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-accent-gold);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
+}
+
+.star-upgrade-cost .icon {
+    color: var(--color-accent-gold);
+    filter: drop-shadow(0 1px 2px rgba(255, 215, 0, 0.4));
+}
+
+/* 海星物品等级 */
+.star-upgrade-level {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-light);
+    margin-top: var(--spacing-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+/* 海星物品徽章（MAX/已购买） */
+.star-upgrade-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--color-accent-gold) 0%, rgba(138, 43, 226, 0.8) 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-left: auto;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+/* 响应式设计 - 移动端海星商店 */
+@media (max-width: 768px) {
+    .star-upgrades-list {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .star-shop-title {
+        font-size: var(--font-size-lg);
+    }
+}
+
 /* 响应式设计 - 移动端优化 */
 @media (max-width: 768px) {
     body {
@@ -1043,6 +1556,56 @@ body {
     .cat-mouth {
         top: 90px;
     }
+    
+    .cat-eyebrow {
+        width: 15px;
+        height: 3px;
+        top: 45px;
+    }
+    
+    .cat-eyebrow-left {
+        left: 40px;
+    }
+    
+    .cat-eyebrow-right {
+        right: 40px;
+    }
+    
+    .cat-blush {
+        width: 22px;
+        height: 15px;
+        top: 68px;
+    }
+    
+    .cat-blush-left {
+        left: 22px;
+    }
+    
+    .cat-blush-right {
+        right: 22px;
+    }
+    
+    /* 响应式表情样式调整 */
+    .cat--idle-sleepy .cat-eye {
+        height: 6px;
+        top: 57px;
+    }
+    
+    .cat--idle-sleepy .cat-eyebrow {
+        top: 43px;
+    }
+    
+    .cat--excited .cat-eye {
+        width: 26px;
+        height: 34px;
+        top: 51px;
+    }
+    
+    .cat--crit .cat-eye {
+        width: 30px;
+        height: 38px;
+        top: 49px;
+    }
 
     .shop {
         padding: var(--spacing-lg);
@@ -1051,6 +1614,21 @@ body {
     .shop-title {
         font-size: var(--font-size-xl);
         margin-bottom: var(--spacing-md);
+    }
+    
+    /* 响应式：窄屏时调整商店头部布局 */
+    .shop-header {
+        flex-wrap: wrap;
+    }
+    
+    .shop-title-group {
+        width: 100%;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .shop-buttons {
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .upgrades-list {
@@ -1113,16 +1691,18 @@ body {
     background: #FF91A4;
 }
 
-/* 商店按钮组 */
+/* 商店按钮组 - 右侧两个圆形按钮 */
 .shop-buttons {
     display: flex;
     gap: var(--spacing-sm);
+    flex-shrink: 0;
 }
 
+/* 商店标签按钮 - 圆形pastel风格按钮 */
 .shop-tab-btn {
     background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
     border: 2px solid rgba(255, 182, 193, 0.3);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full); /* 使用完全圆形 */
     padding: var(--spacing-sm);
     font-size: var(--font-size-lg);
     width: 40px;
@@ -1133,12 +1713,31 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .shop-tab-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+/* 里程碑按钮激活状态 - 当成就面板打开时显示高亮效果 */
+.shop-tab-btn.active {
+    background: linear-gradient(135deg, var(--color-accent-gold) 0%, var(--color-accent) 100%);
+    border-color: var(--color-accent-gold);
+    border-width: 3px;
+    box-shadow: 
+        0 0 12px rgba(255, 215, 0, 0.5),
+        var(--shadow-md);
+    transform: scale(1.05);
+}
+
+.shop-tab-btn.active:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 
+        0 0 16px rgba(255, 215, 0, 0.7),
+        var(--shadow-lg);
 }
 
 /* 外观面板 */
@@ -1690,6 +2289,196 @@ body {
     flex-direction: column;
     align-items: center;
     gap: var(--spacing-sm);
+}
+
+/* ========== 金色鱼事件系统 ========== */
+.golden-fish-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 500; /* 在背景层上方，但在猫和UI下方 */
+}
+
+/* 金色小鱼元素 - 带有发光效果 */
+.golden-fish {
+    position: absolute;
+    font-size: 40px;
+    cursor: pointer;
+    pointer-events: auto; /* 允许点击 */
+    will-change: transform, opacity;
+    z-index: 501;
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 20px rgba(255, 165, 0, 0.6));
+    animation: goldenFishShimmer 2s ease-in-out infinite;
+}
+
+/* 金色鱼闪烁动画 */
+@keyframes goldenFishShimmer {
+    0%, 100% {
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 20px rgba(255, 165, 0, 0.6));
+    }
+    50% {
+        filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1)) drop-shadow(0 0 30px rgba(255, 165, 0, 0.8));
+    }
+}
+
+/* 金色鱼游动动画 - 从左到右 */
+@keyframes swimLeftToRight {
+    from {
+        transform: translateX(-80px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    to {
+        transform: translateX(calc(100% + 80px));
+        opacity: 0;
+    }
+}
+
+/* 金色鱼游动动画 - 从右到左 */
+@keyframes swimRightToLeft {
+    from {
+        transform: translateX(80px);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    to {
+        transform: translateX(calc(-100% - 80px));
+        opacity: 0;
+    }
+}
+
+/* 金色鱼图标样式 */
+.golden-fish svg {
+    width: 40px;
+    height: 40px;
+    color: #FFD700;
+}
+
+/* 翻转的金色鱼（从右到左时） */
+.golden-fish--flipped svg {
+    transform: scaleX(-1);
+}
+
+/* 金色鱼悬停效果 */
+.golden-fish:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1)) drop-shadow(0 0 40px rgba(255, 165, 0, 0.9));
+}
+
+.golden-fish--flipped:hover {
+    transform: scaleX(-1) scale(1.2);
+}
+
+/* ========== 提示气泡系统 ========== */
+.tip-bubbles-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000; /* 在商店上方 */
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    max-width: 400px;
+    width: 90%;
+}
+
+/* 提示气泡 - 圆角矩形，pastel背景 */
+.tip-bubble {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 245, 0.95) 100%);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        0 0 20px rgba(255, 182, 193, 0.2);
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    pointer-events: none;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    line-height: 1.5;
+    max-width: 100%;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    position: relative;
+    backdrop-filter: blur(5px);
+}
+
+/* 提示气泡显示状态 */
+.tip-bubble.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 提示气泡淡出状态 */
+.tip-bubble.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* 提示气泡内容 */
+.tip-bubble-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* 提示气泡图标 */
+.tip-bubble-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--color-accent-gold);
+    opacity: 0.8;
+}
+
+/* 提示气泡文本 */
+.tip-bubble-text {
+    flex: 1;
+    word-wrap: break-word;
+}
+
+/* 响应式：移动端调整提示气泡位置 */
+@media (max-width: 768px) {
+    .tip-bubbles-container {
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: calc(100% - 20px);
+        width: calc(100% - 20px);
+        align-items: center;
+    }
+    
+    .tip-bubble {
+        max-width: 100%;
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .golden-fish {
+        font-size: 32px;
+    }
+    
+    .golden-fish svg {
+        width: 32px;
+        height: 32px;
+    }
 }
 
 /* DPS里程碑气泡 - 重新设计为圆角药丸形状 */

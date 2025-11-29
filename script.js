@@ -39,6 +39,7 @@
         prestigeBonus: 0,           // 转生永久加成（倍数，如0.1表示+10%）
         seaStars: 0,                // 海星货币（转生获得）
         globalMultiplier: 1.0,      // 全局倍率（来自猫猫伙伴）
+        starBonusMultiplier: 1.0,  // 海星物品全局倍率加成（独立于转生加成）
         unlockedAchievements: new Set(),  // 已解锁的成就
         unlockedDpsMilestones: new Set(), // 已触发的DPS里程碑
         
@@ -137,6 +138,57 @@
             }
         },
         
+        // 海星商店物品 - 使用海星货币购买的永久升级
+        // 与普通鱼币升级不同，海星物品提供永久加成，转生后保留
+        starUpgrades: {
+            // 深海罗盘：每级额外 +5% 全局收益
+            deepCompass: {
+                id: 'deepCompass',
+                name: '深海罗盘',
+                description: '每级额外 +5% 全局收益',
+                baseCost: 1,        // 基础成本（海星）
+                level: 0,          // 当前等级
+                maxLevel: 20,      // 最大等级
+                // 成本公式：基础成本 * (1.5 ^ 等级)
+                getCost: function(level) {
+                    return Math.floor(this.baseCost * Math.pow(1.5, level));
+                },
+                // 效果：每级增加5%全局收益倍率
+                getMultiplier: function(level) {
+                    return 1.0 + (level * 0.05);
+                }
+            },
+            
+            // 幸运星项链：每级额外 +2% 暴击率
+            luckyNecklace: {
+                id: 'luckyNecklace',
+                name: '幸运星项链',
+                description: '每级额外 +2% 暴击率',
+                baseCost: 2,
+                level: 0,
+                maxLevel: 25,
+                getCost: function(level) {
+                    return Math.floor(this.baseCost * Math.pow(1.5, level));
+                },
+                // 效果：每级增加2%暴击率
+                getCritChance: function(level) {
+                    return level * 0.02;
+                }
+            },
+            
+            // 收藏家纪念章：一次性购买，永久解锁某些稀有外观
+            collectorBadge: {
+                id: 'collectorBadge',
+                name: '收藏家纪念章',
+                description: '永久解锁稀有外观选项',
+                baseCost: 5,
+                purchased: false,  // 一次性购买标志
+                getCost: function() {
+                    return this.baseCost;
+                }
+            }
+        },
+        
         autoFishingActive: false,   // 自动钓鱼是否激活
         muted: false                // 是否静音
     };
@@ -171,6 +223,8 @@
         seaStars: document.getElementById('sea-stars'),
         seaStarsItem: document.getElementById('sea-stars-item'),
         milestoneBubbles: document.getElementById('milestone-bubbles'),
+        starShopSection: document.getElementById('star-shop-section'),
+        starUpgradesList: document.getElementById('star-upgrades-list'),
         body: document.body
     };
 
@@ -188,24 +242,45 @@
         
         /**
          * 计算实际点击收益（包含所有加成）
+         * 加成来源：基础点击值、猫猫伙伴倍率、转生加成、海星物品加成
          * @returns {number} 实际每次点击获得的鱼
          */
         calculateActualClickValue() {
             const baseClickPower = 1 + GameState.upgrades.clickPower.getEffect(GameState.upgrades.clickPower.level);
             const globalMultiplier = GameState.globalMultiplier;
             const prestigeMultiplier = 1.0 + GameState.prestigeBonus;
-            return baseClickPower * globalMultiplier * prestigeMultiplier;
+            // 海星物品加成：深海罗盘提供的全局倍率
+            const starMultiplier = GameState.starBonusMultiplier;
+            return baseClickPower * globalMultiplier * prestigeMultiplier * starMultiplier;
         },
         
         /**
          * 计算实际每秒收益
+         * 加成来源：基础自动钓鱼、猫猫伙伴倍率、转生加成、海星物品加成
          * @returns {number} 实际每秒获得的鱼
          */
         calculateActualPerSecond() {
             const baseAutoFishing = GameState.upgrades.autoFishing.getEffect(GameState.upgrades.autoFishing.level);
             const globalMultiplier = GameState.globalMultiplier;
             const prestigeMultiplier = 1.0 + GameState.prestigeBonus;
-            return baseAutoFishing * globalMultiplier * prestigeMultiplier;
+            // 海星物品加成：深海罗盘提供的全局倍率
+            const starMultiplier = GameState.starBonusMultiplier;
+            return baseAutoFishing * globalMultiplier * prestigeMultiplier * starMultiplier;
+        },
+        
+        /**
+         * 计算总暴击率（包含幸运星项链加成）
+         * @returns {number} 总暴击率（0-1之间）
+         */
+        calculateTotalCritChance() {
+            const baseCritChance = GameState.upgrades.luckyFish.getCritChance(
+                GameState.upgrades.luckyFish.level
+            );
+            // 幸运星项链提供的额外暴击率
+            const necklaceBonus = GameState.starUpgrades.luckyNecklace.getCritChance(
+                GameState.starUpgrades.luckyNecklace.level
+            );
+            return Math.min(baseCritChance + necklaceBonus, 1.0); // 最大100%
         }
     };
 
@@ -295,7 +370,7 @@
 
         updateFishPerClick(animate = true) {
             const actualValue = UpgradeCalculator.calculateActualClickValue();
-            const newValue = actualValue.toFixed(1);
+            const newValue = Math.floor(actualValue).toLocaleString();
             const oldValue = elements.fishPerClick.textContent;
             
             if (animate && newValue !== oldValue) {
@@ -310,8 +385,8 @@
         
         updateFishPerSecond() {
             const actualValue = UpgradeCalculator.calculateActualPerSecond();
-            elements.fishPerSecond.textContent = actualValue.toFixed(1);
-            // 检查DPS里程碑
+            elements.fishPerSecond.textContent = Math.floor(actualValue).toLocaleString();
+            // 检查DPS里程碑（使用原始值，不取整）
             MilestoneManager.checkMilestones(actualValue);
         },
         
@@ -361,7 +436,18 @@
         showFishCaughtAnimation(x, y) {
             const fishIcon = document.createElement('div');
             fishIcon.className = 'fish-caught';
-            fishIcon.innerHTML = '<svg class="icon icon--fish-animation"><use href="#icon-fish"></use></svg>';
+            
+            // 根据当前选中的鱼图标设置选择对应的SVG图标
+            const currentFishIcon = GameState.cosmetics.selected.fishIcon;
+            const fishDef = CosmeticDefinitions.fishIcons.find(f => f.id === currentFishIcon);
+            let iconId = 'icon-fish'; // 默认经典小鲤鱼
+            if (fishDef) {
+                if (fishDef.id === 'koi') iconId = 'icon-fish-koi';
+                else if (fishDef.id === 'puffer') iconId = 'icon-fish-puffer';
+                else if (fishDef.id === 'shark') iconId = 'icon-fish-shark';
+            }
+            
+            fishIcon.innerHTML = `<svg class="icon icon--fish-animation"><use href="#${iconId}"></use></svg>`;
             
             const mainRect = elements.cat.closest('.main-content').getBoundingClientRect();
             const hookRect = elements.rodHook.getBoundingClientRect();
@@ -446,6 +532,110 @@
         },
         
         /**
+         * 渲染海星商店 - 显示海星物品
+         * 海星商店与普通鱼币商店不同：
+         * - 使用海星图标而非硬币图标
+         * - 使用不同的强调色（金色/紫色系）
+         * - 物品提供永久加成，转生后保留
+         */
+        renderStarShop() {
+            // 如果有海星，显示海星商店区域
+            if (GameState.seaStars > 0) {
+                elements.starShopSection.style.display = 'block';
+            } else {
+                elements.starShopSection.style.display = 'none';
+                return;
+            }
+            
+            elements.starUpgradesList.innerHTML = '';
+            
+            Object.keys(GameState.starUpgrades).forEach(itemKey => {
+                const item = GameState.starUpgrades[itemKey];
+                
+                // 处理一次性购买的物品（收藏家纪念章）
+                if (item.purchased !== undefined) {
+                    const isPurchased = item.purchased;
+                    const cost = item.getCost();
+                    const canAfford = !isPurchased && GameState.seaStars >= cost;
+                    
+                    const itemElement = document.createElement('div');
+                    itemElement.className = `star-upgrade-item ${canAfford ? '' : 'disabled'} ${isPurchased ? 'purchased' : ''}`;
+                    
+                    itemElement.innerHTML = `
+                        <div class="star-upgrade-name">
+                            <svg class="icon icon--upgrade"><use href="#icon-star"></use></svg>
+                            ${item.name}
+                            ${isPurchased ? '<span class="star-upgrade-badge">已购买</span>' : ''}
+                        </div>
+                        <div class="star-upgrade-description">${item.description}</div>
+                        ${!isPurchased ? `
+                            <div class="star-upgrade-cost">
+                                <svg class="icon icon--small"><use href="#icon-star"></use></svg>
+                                ${Math.floor(cost).toLocaleString()} 海星
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    if (canAfford) {
+                        itemElement.addEventListener('click', () => {
+                            GameManager.purchaseStarUpgrade(itemKey);
+                        });
+                    }
+                    
+                    elements.starUpgradesList.appendChild(itemElement);
+                    return;
+                }
+                
+                // 处理可升级的物品（深海罗盘、幸运星项链）
+                const currentLevel = item.level;
+                const nextLevel = currentLevel + 1;
+                const cost = item.getCost(currentLevel);
+                const canAfford = currentLevel < item.maxLevel && GameState.seaStars >= cost;
+                const isMaxLevel = currentLevel >= item.maxLevel;
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = `star-upgrade-item ${canAfford ? '' : 'disabled'} ${isMaxLevel ? 'max-level' : ''}`;
+                
+                // 构建下一级效果描述
+                let nextEffectText = '';
+                if (itemKey === 'deepCompass') {
+                    const currentMultiplier = item.getMultiplier(currentLevel);
+                    const nextMultiplier = item.getMultiplier(nextLevel);
+                    nextEffectText = `下一级: 全局倍率 ${currentMultiplier.toFixed(2)}x → ${nextMultiplier.toFixed(2)}x`;
+                } else if (itemKey === 'luckyNecklace') {
+                    const currentChance = item.getCritChance(currentLevel);
+                    const nextChance = item.getCritChance(nextLevel);
+                    nextEffectText = `下一级: 暴击率 +${(currentChance * 100).toFixed(1)}% → +${(nextChance * 100).toFixed(1)}%`;
+                }
+                
+                itemElement.innerHTML = `
+                    <div class="star-upgrade-name">
+                        <svg class="icon icon--upgrade"><use href="#icon-star"></use></svg>
+                        ${item.name}
+                        ${isMaxLevel ? '<span class="star-upgrade-badge">MAX</span>' : ''}
+                    </div>
+                    <div class="star-upgrade-description">${item.description}</div>
+                    ${!isMaxLevel ? `<div class="star-upgrade-next-effect">${nextEffectText}</div>` : ''}
+                    ${!isMaxLevel ? `
+                        <div class="star-upgrade-cost">
+                            <svg class="icon icon--small"><use href="#icon-star"></use></svg>
+                            ${Math.floor(cost).toLocaleString()} 海星
+                        </div>
+                    ` : ''}
+                    <div class="star-upgrade-level">当前等级: ${currentLevel}${isMaxLevel ? ' (已满级)' : ''}</div>
+                `;
+                
+                if (canAfford) {
+                    itemElement.addEventListener('click', () => {
+                        GameManager.purchaseStarUpgrade(itemKey);
+                    });
+                }
+                
+                elements.starUpgradesList.appendChild(itemElement);
+            });
+        },
+        
+        /**
          * 渲染成就列表 - 改进的UI设计
          * 左侧图标区域（圆形背景+图标），右侧文本区域（标题+进度）
          */
@@ -457,7 +647,7 @@
                 const isUnlocked = GameState.unlockedAchievements.has(milestone);
                 achievementItem.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
                 
-                const achievementIconId = isUnlocked ? 'icon-trophy' : 'icon-lock';
+                const achievementIconId = isUnlocked ? 'icon-milestone' : 'icon-lock';
                 const progress = Math.min(GameState.totalFishEarned, milestone);
                 const progressText = isUnlocked 
                     ? '已完成' 
@@ -517,7 +707,7 @@
             { id: 'day', name: '柔和晨光', gradient: 'linear-gradient(135deg, #FFF5EE 0%, #E0F2F5 50%, #B0E0E6 100%)', requirement: { type: 'default' } },
             { id: 'sunset', name: '绚丽晚霞', gradient: 'linear-gradient(135deg, #FFE4B5 0%, #FFB6C1 50%, #FF8C69 100%)', requirement: { type: 'totalFish', value: 15000 } },
             { id: 'night', name: '神秘星空', gradient: 'linear-gradient(135deg, #191970 0%, #4B0082 50%, #000000 100%)', requirement: { type: 'upgradeLevel', upgrade: 'clickPower', value: 20 } },
-            { id: 'ocean', name: '深邃海洋', gradient: 'linear-gradient(135deg, #001F3F 0%, #0074D9 50%, #7FDBFF 100%)', requirement: { type: 'seaStars', value: 5 } }
+            { id: 'ocean', name: '深邃海洋', gradient: 'linear-gradient(135deg, #001F3F 0%, #0074D9 50%, #7FDBFF 100%)', requirement: { type: 'totalFish', value: 50000 } }
         ]
     };
 
@@ -897,6 +1087,7 @@
      * - 实现面板互斥切换：打开一个面板时自动关闭另一个
      * - 实现点击外部关闭：点击遮罩层时关闭当前打开的面板
      * - 点击面板内容区域不会关闭面板
+     * - 管理按钮的active状态：打开面板时激活对应按钮，关闭时取消激活
      */
     const PanelManager = {
         currentPanel: null,
@@ -913,6 +1104,9 @@
             // 打开新面板
             this.currentPanel = panelElement;
             panelElement.style.display = 'flex'; // 使用flex以支持遮罩层居中
+            
+            // 更新按钮active状态
+            this.updateButtonStates(panelElement);
             
             // 绑定点击外部关闭事件
             this.bindOutsideClick(panelElement);
@@ -934,6 +1128,26 @@
             
             if (this.currentPanel === panelElement) {
                 this.currentPanel = null;
+            }
+            
+            // 更新按钮active状态（关闭所有按钮的active状态）
+            this.updateButtonStates(null);
+        },
+        
+        /**
+         * 更新按钮active状态
+         * 当成就面板打开时，激活achievements-btn；当外观面板打开时，激活cosmetics-btn
+         */
+        updateButtonStates(panelElement) {
+            // 移除所有按钮的active状态
+            elements.achievementsBtn.classList.remove('active');
+            elements.cosmeticsBtn.classList.remove('active');
+            
+            // 根据当前打开的面板激活对应按钮
+            if (panelElement === elements.achievementsPanel) {
+                elements.achievementsBtn.classList.add('active');
+            } else if (panelElement === elements.cosmeticsPanel) {
+                elements.cosmeticsBtn.classList.add('active');
             }
         },
         
@@ -992,6 +1206,904 @@
         }
     };
 
+    // ==================== 背景效果管理器 ====================
+    /**
+     * 背景效果管理器说明:
+     * 
+     * 功能：
+     * 1. 视差效果：基于鼠标水平移动，远层和近层以不同速度移动
+     * 2. 浮动元素：在背景层中生成气泡和云朵，使用CSS动画实现平滑移动
+     * 
+     * 性能优化：
+     * - 使用 transform 而非 left/top（避免layout thrashing）
+     * - 使用 will-change 提示浏览器进行GPU加速
+     * - 使用 requestAnimationFrame 优化视差更新
+     * - 限制浮动元素数量以保持性能
+     */
+    const BackgroundEffectsManager = {
+        // DOM元素引用
+        farLayer: null,
+        nearLayer: null,
+        mainContent: null,
+        
+        // 视差效果配置
+        parallaxConfig: {
+            farIntensity: 0.3,   // 远层移动强度（相对于鼠标移动的30%）
+            nearIntensity: 0.6,  // 近层移动强度（相对于鼠标移动的60%）
+            maxOffset: 50        // 最大偏移量（像素）
+        },
+        
+        // 浮动元素配置
+        ambientConfig: {
+            maxBubbles: 8,       // 最大气泡数量
+            maxBlobs: 4,         // 最大云朵数量
+            bubbleSizeRange: { min: 30, max: 80 },  // 气泡大小范围（像素）
+            blobSizeRange: { min: 100, max: 200 },  // 云朵大小范围（像素）
+            opacityRange: { min: 0.08, max: 0.15 }, // 透明度范围
+            durationRange: { min: 20, max: 35 }     // 动画持续时间范围（秒）
+        },
+        
+        // 当前鼠标位置（用于视差计算）
+        mouseX: 0,
+        
+        // 浮动元素数组
+        ambientElements: [],
+        
+        /**
+         * 初始化背景效果系统
+         */
+        init() {
+            // 获取DOM元素
+            this.farLayer = document.getElementById('background-layer-far');
+            this.nearLayer = document.getElementById('background-layer-near');
+            this.mainContent = document.querySelector('.main-content');
+            
+            if (!this.farLayer || !this.nearLayer || !this.mainContent) {
+                console.warn('背景层元素未找到，跳过背景效果初始化');
+                return;
+            }
+            
+            // 初始化视差效果
+            this.initParallax();
+            
+            // 初始化浮动元素
+            this.initAmbientElements();
+            
+            // 监听窗口大小变化，重新生成浮动元素
+            window.addEventListener('resize', () => {
+                this.updateAmbientElements();
+            });
+        },
+        
+        /**
+         * 初始化视差效果
+         * 计算方式：根据鼠标在屏幕上的水平位置，计算偏移量
+         * - 远层移动速度 = 鼠标位置百分比 * 远层强度 * 最大偏移
+         * - 近层移动速度 = 鼠标位置百分比 * 近层强度 * 最大偏移
+         */
+        initParallax() {
+            // 监听鼠标移动
+            let rafId = null;
+            
+            this.mainContent.addEventListener('mousemove', (e) => {
+                // 节流：使用requestAnimationFrame
+                if (rafId) return;
+                
+                rafId = requestAnimationFrame(() => {
+                    // 计算鼠标在容器中的相对位置（0-1范围）
+                    const rect = this.mainContent.getBoundingClientRect();
+                    const relativeX = (e.clientX - rect.left) / rect.width;
+                    
+                    // 转换为偏移量（中心为0，左边缘为负，右边缘为正）
+                    const normalizedX = (relativeX - 0.5) * 2; // -1 到 1
+                    
+                    // 计算各层的偏移量
+                    const farOffset = normalizedX * this.parallaxConfig.farIntensity * this.parallaxConfig.maxOffset;
+                    const nearOffset = normalizedX * this.parallaxConfig.nearIntensity * this.parallaxConfig.maxOffset;
+                    
+                    // 使用transform更新位置（GPU友好）
+                    this.farLayer.style.transform = `translateX(${farOffset}px)`;
+                    this.nearLayer.style.transform = `translateX(${nearOffset}px)`;
+                    
+                    // 保存鼠标位置
+                    this.mouseX = normalizedX;
+                    
+                    rafId = null;
+                });
+            });
+            
+            // 鼠标离开容器时重置位置
+            this.mainContent.addEventListener('mouseleave', () => {
+                this.farLayer.style.transform = 'translateX(0)';
+                this.nearLayer.style.transform = 'translateX(0)';
+                this.mouseX = 0;
+            });
+        },
+        
+        /**
+         * 初始化浮动元素
+         * 在远层和近层中生成气泡和云朵，随机化位置、大小和速度
+         */
+        initAmbientElements() {
+            this.ambientElements = [];
+            
+            // 在远层生成云朵（较少，较大）
+            this.createAmbientElements(
+                this.farLayer,
+                'ambient-blob',
+                this.ambientConfig.maxBlobs,
+                this.ambientConfig.blobSizeRange,
+                this.ambientConfig.opacityRange,
+                this.ambientConfig.durationRange
+            );
+            
+            // 在近层生成气泡（较多，较小）
+            this.createAmbientElements(
+                this.nearLayer,
+                'ambient-bubble',
+                this.ambientConfig.maxBubbles,
+                this.ambientConfig.bubbleSizeRange,
+                this.ambientConfig.opacityRange,
+                this.ambientConfig.durationRange
+            );
+        },
+        
+        /**
+         * 创建浮动元素
+         * @param {HTMLElement} container - 容器元素
+         * @param {string} className - 元素类名
+         * @param {number} count - 元素数量
+         * @param {Object} sizeRange - 大小范围
+         * @param {Object} opacityRange - 透明度范围
+         * @param {Object} durationRange - 动画持续时间范围
+         */
+        createAmbientElements(container, className, count, sizeRange, opacityRange, durationRange) {
+            const rect = container.getBoundingClientRect();
+            
+            for (let i = 0; i < count; i++) {
+                const element = document.createElement('div');
+                element.className = className;
+                
+                // 随机化属性
+                const size = this.randomBetween(sizeRange.min, sizeRange.max);
+                const opacity = this.randomBetween(opacityRange.min, opacityRange.max);
+                const duration = this.randomBetween(durationRange.min, durationRange.max);
+                
+                // 随机起始位置（在容器范围内）
+                const startX = this.randomBetween(0, rect.width);
+                const startY = this.randomBetween(0, rect.height);
+                
+                // 随机结束位置（允许部分移出屏幕）
+                const endX = this.randomBetween(-rect.width * 0.2, rect.width * 1.2);
+                const endY = this.randomBetween(-rect.height * 0.2, rect.height * 1.2);
+                
+                // 随机缩放（0.8-1.2）
+                const scale = this.randomBetween(0.8, 1.2);
+                
+                // 设置CSS变量（用于动画）
+                element.style.setProperty('--start-x', `${startX}px`);
+                element.style.setProperty('--start-y', `${startY}px`);
+                element.style.setProperty('--end-x', `${endX}px`);
+                element.style.setProperty('--end-y', `${endY}px`);
+                element.style.setProperty('--scale', scale.toString());
+                element.style.setProperty('--max-opacity', opacity.toString());
+                element.style.setProperty('--duration', `${duration}s`);
+                
+                // 设置尺寸
+                element.style.width = `${size}px`;
+                element.style.height = `${size}px`;
+                
+                container.appendChild(element);
+                this.ambientElements.push(element);
+                
+                // 随机延迟启动动画，避免所有元素同时开始
+                const delay = this.randomBetween(0, duration * 0.5);
+                element.style.animationDelay = `${delay}s`;
+            }
+        },
+        
+        /**
+         * 更新浮动元素（窗口大小变化时调用）
+         */
+        updateAmbientElements() {
+            // 清除现有元素
+            this.ambientElements.forEach(el => {
+                if (el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            });
+            
+            // 重新生成
+            this.initAmbientElements();
+        },
+        
+        /**
+         * 随机数生成辅助函数
+         */
+        randomBetween(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+    };
+
+    // ==================== 猫咪表情管理器 ====================
+    /**
+     * 猫咪表情管理器说明:
+     * 
+     * 功能:
+     * - 根据游戏状态自动切换猫咪表情
+     * - 跟踪最后点击时间和点击频率
+     * - 在暴击时短暂显示crit表情
+     * 
+     * 表情状态:
+     * - idle_normal: 默认开心脸 (大眼睛,微笑嘴)
+     * - idle_sleepy: 困倦脸 (半闭眼,下垂眉毛) - 10秒无点击后触发
+     * - excited: 兴奋脸 (大眼睛,大笑嘴,腮红) - 高DPS或频繁点击时触发
+     * - crit: 暴击脸 (超大眼睛,张大嘴,星星眼) - 暴击时短暂显示0.5秒
+     */
+    const CatExpressionManager = {
+        currentExpression: 'idle_normal',
+        lastClickTime: Date.now(),
+        clickHistory: [], // 记录最近点击时间,用于计算点击频率
+        critTimeout: null, // 暴击表情的定时器
+        updateInterval: null, // 定期更新表情的定时器
+        
+        /**
+         * 初始化表情管理器
+         */
+        init() {
+            this.setExpression('idle_normal');
+            this.lastClickTime = Date.now();
+            
+            // 每500ms检查一次是否需要更新表情
+            this.updateInterval = setInterval(() => {
+                this.updateOnTick();
+            }, 500);
+        },
+        
+        /**
+         * 设置表情
+         * @param {string} expression - 表情类型: 'idle_normal' | 'idle_sleepy' | 'excited' | 'crit'
+         */
+        setExpression(expression) {
+            // 移除所有表情类
+            elements.cat.classList.remove(
+                'cat--idle-normal',
+                'cat--idle-sleepy',
+                'cat--excited',
+                'cat--crit'
+            );
+            
+            // 添加新表情类
+            elements.cat.classList.add(`cat--${expression}`);
+            this.currentExpression = expression;
+        },
+        
+        /**
+         * 记录点击事件
+         */
+        recordClick() {
+            const now = Date.now();
+            this.lastClickTime = now;
+            
+            // 记录到点击历史(保留最近5秒的点击)
+            this.clickHistory.push(now);
+            this.clickHistory = this.clickHistory.filter(time => now - time < 5000);
+            
+            // 如果当前是sleepy状态,立即切换到normal或excited
+            if (this.currentExpression === 'idle_sleepy') {
+                // 根据点击频率决定切换到normal还是excited
+                const clickRate = this.getClickRate();
+                if (clickRate >= 3) {
+                    this.setExpression('excited');
+                } else {
+                    this.setExpression('idle_normal');
+                }
+            }
+        },
+        
+        /**
+         * 计算最近5秒的点击频率(每秒点击次数)
+         */
+        getClickRate() {
+            const now = Date.now();
+            const recentClicks = this.clickHistory.filter(time => now - time < 5000);
+            return recentClicks.length / 5; // 转换为每秒点击次数
+        },
+        
+        /**
+         * 触发暴击表情
+         */
+        triggerCrit() {
+            // 清除之前的crit定时器
+            if (this.critTimeout) {
+                clearTimeout(this.critTimeout);
+            }
+            
+            // 切换到crit表情
+            this.setExpression('crit');
+            
+            // 0.5秒后恢复到适当状态
+            this.critTimeout = setTimeout(() => {
+                const clickRate = this.getClickRate();
+                const dps = UpgradeCalculator.calculateActualPerSecond();
+                
+                if (clickRate >= 3 || dps >= 50) {
+                    this.setExpression('excited');
+                } else {
+                    this.setExpression('idle_normal');
+                }
+                
+                this.critTimeout = null;
+            }, 500);
+        },
+        
+        /**
+         * 定期更新表情(每500ms调用一次)
+         */
+        updateOnTick() {
+            // 如果当前是crit状态,不更新(等待crit定时器)
+            if (this.currentExpression === 'crit' || this.critTimeout) {
+                return;
+            }
+            
+            const now = Date.now();
+            const timeSinceLastClick = (now - this.lastClickTime) / 1000; // 秒
+            const clickRate = this.getClickRate();
+            const dps = UpgradeCalculator.calculateActualPerSecond();
+            
+            // 检查是否应该切换到sleepy状态(10秒无点击)
+            if (timeSinceLastClick >= 10 && this.currentExpression !== 'idle_sleepy') {
+                this.setExpression('idle_sleepy');
+                return;
+            }
+            
+            // 检查是否应该切换到excited状态
+            // 条件: 点击频率>=3次/秒 或 DPS>=50
+            if ((clickRate >= 3 || dps >= 50) && this.currentExpression !== 'excited') {
+                // 如果当前是sleepy,需要先切换到normal
+                if (this.currentExpression === 'idle_sleepy') {
+                    this.setExpression('idle_normal');
+                } else {
+                    this.setExpression('excited');
+                }
+                return;
+            }
+            
+            // 检查是否应该切换到normal状态
+            // 条件: 点击频率<3次/秒 且 DPS<50 且 不是sleepy状态
+            if (clickRate < 3 && dps < 50 && timeSinceLastClick < 10) {
+                if (this.currentExpression === 'excited') {
+                    this.setExpression('idle_normal');
+                }
+            }
+        },
+        
+        /**
+         * 清理资源
+         */
+        cleanup() {
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+            }
+            if (this.critTimeout) {
+                clearTimeout(this.critTimeout);
+            }
+        }
+    };
+
+    // ==================== 事件管理器 ====================
+    /**
+     * 事件管理器说明:
+     * 
+     * 功能:
+     * 1. 金色鱼事件: 随机生成可点击的金色鱼，游过屏幕，点击获得奖励
+     * 2. 提示气泡: 显示游戏提示和建议
+     * 
+     * 金色鱼生成逻辑:
+     * - 每15秒检查一次，有15%的概率生成一条金色鱼
+     * - 最多同时存在1条金色鱼（防止屏幕过于拥挤）
+     * - 金色鱼在3-5秒内游过屏幕，未被点击则自动消失
+     * 
+     * 奖励计算:
+     * - 基于当前DPS（每秒收益）的1-3倍作为一次性奖励
+     * - 公式: 当前DPS * (1 + Math.random() * 2)
+     */
+    const EventManager = {
+        goldenFishContainer: null,
+        tipBubblesContainer: null,
+        mainContent: null,
+        goldenFishSpawnTimer: null,
+        tipBubbleTimer: null,
+        activeGoldenFish: null, // 当前活动的金色鱼（限制并发）
+        
+        // 金色鱼配置
+        goldenFishConfig: {
+            spawnInterval: 15000,        // 每15秒检查一次（毫秒）
+            spawnProbability: 0.15,      // 15%的生成概率
+            swimDuration: 4000,          // 游动持续时间（毫秒）
+            minDuration: 3000,           // 最短持续时间
+            maxDuration: 5000            // 最长持续时间
+        },
+        
+        // 提示气泡配置
+        tipBubbleConfig: {
+            showInterval: 30000,         // 每30秒显示一次（毫秒）
+            visibleDuration: 5000,       // 可见持续时间（毫秒）
+            fadeDuration: 500            // 淡入淡出时间（毫秒）
+        },
+        
+        // 提示文本数组
+        tipMessages: [
+            '再攒一些鱼就能解锁新鱼竿哦!',
+            '试试升级自动钓鱼助手, 挂机收益更高!',
+            '暴击来自幸运小鱼干, 别忘了升级～',
+            '点击越快, 收益越多, 快来试试吧!',
+            '升级猫猫伙伴可以获得全局倍率加成哦!',
+            '累计钓鱼数达到一定数量可以解锁成就!',
+            '转生可以获得海星, 永久提升收益!',
+            '每天坚持钓鱼, 收益会越来越多呢!'
+        ],
+        
+        /**
+         * 初始化事件管理器
+         */
+        init() {
+            this.goldenFishContainer = document.getElementById('golden-fish-container');
+            this.tipBubblesContainer = document.getElementById('tip-bubbles-container');
+            this.mainContent = document.querySelector('.main-content');
+            
+            if (!this.goldenFishContainer || !this.tipBubblesContainer || !this.mainContent) {
+                console.warn('事件管理器初始化失败: 缺少必要的DOM元素');
+                return;
+            }
+            
+            // 启动金色鱼生成定时器
+            this.startGoldenFishSpawner();
+            
+            // 启动提示气泡定时器
+            this.startTipBubbleTimer();
+        },
+        
+        /**
+         * 启动金色鱼生成定时器
+         * 每N秒检查一次是否有概率生成金色鱼
+         */
+        startGoldenFishSpawner() {
+            // 清除旧定时器
+            if (this.goldenFishSpawnTimer) {
+                clearInterval(this.goldenFishSpawnTimer);
+            }
+            
+            this.goldenFishSpawnTimer = setInterval(() => {
+                // 如果已经有活动的金色鱼，跳过
+                if (this.activeGoldenFish) {
+                    return;
+                }
+                
+                // 根据概率决定是否生成
+                if (Math.random() < this.goldenFishConfig.spawnProbability) {
+                    this.spawnGoldenFish();
+                }
+            }, this.goldenFishConfig.spawnInterval);
+        },
+        
+        /**
+         * 生成一条金色鱼
+         * 随机选择游动方向（从左到右或从右到左）和垂直位置
+         */
+        spawnGoldenFish() {
+            if (this.activeGoldenFish) {
+                return; // 已有活动的金色鱼，不重复生成
+            }
+            
+            const fish = document.createElement('div');
+            fish.className = 'golden-fish';
+            fish.innerHTML = '<svg class="icon icon--golden-fish"><use href="#icon-fish-golden"></use></svg>';
+            
+            // 随机选择游动方向（从左到右或从右到左）
+            const isLeftToRight = Math.random() < 0.5;
+            
+            // 随机选择垂直位置（在主要游戏区域内，避开顶部和底部）
+            const mainRect = this.mainContent.getBoundingClientRect();
+            const minY = mainRect.top + 80;  // 避开顶部
+            const maxY = mainRect.bottom - 80; // 避开底部
+            const randomY = minY + Math.random() * (maxY - minY);
+            
+            // 设置初始位置（相对于main-content容器）
+            if (isLeftToRight) {
+                fish.style.left = '-80px'; // 从容器左侧外开始
+                fish.style.top = `${randomY - mainRect.top}px`;
+                fish.style.animation = `swimLeftToRight ${this.goldenFishConfig.swimDuration}ms linear forwards`;
+            } else {
+                const containerWidth = this.mainContent.offsetWidth;
+                fish.style.left = `${containerWidth + 80}px`; // 从容器右侧外开始
+                fish.style.top = `${randomY - mainRect.top}px`;
+                fish.classList.add('golden-fish--flipped'); // 添加翻转类
+                fish.style.animation = `swimRightToLeft ${this.goldenFishConfig.swimDuration}ms linear forwards`;
+            }
+            
+            // 添加点击事件
+            fish.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡，避免触发猫咪点击
+                this.handleGoldenFishClick(fish);
+            });
+            
+            // 添加到容器
+            this.goldenFishContainer.appendChild(fish);
+            this.activeGoldenFish = fish;
+            
+            // 设置自动消失定时器
+            const autoRemoveTimer = setTimeout(() => {
+                this.removeGoldenFish(fish);
+            }, this.goldenFishConfig.swimDuration + 100);
+            
+            // 将定时器ID保存到fish元素上，以便提前清除
+            fish._autoRemoveTimer = autoRemoveTimer;
+        },
+        
+        /**
+         * 处理金色鱼点击事件
+         * 奖励计算: 基于当前DPS的1-3倍作为一次性奖励
+         */
+        handleGoldenFishClick(fish) {
+            // 计算奖励（基于当前DPS的1-3倍）
+            const currentDps = UpgradeCalculator.calculateActualPerSecond();
+            const bonusMultiplier = 1 + Math.random() * 2; // 1x - 3x
+            const bonus = Math.floor(currentDps * bonusMultiplier);
+            
+            // 确保最小奖励为1
+            const actualBonus = Math.max(bonus, 1);
+            
+            // 添加到游戏状态
+            GameState.fish += actualBonus;
+            GameState.totalFishEarned += actualBonus;
+            
+            // 显示浮动文字
+            const rect = fish.getBoundingClientRect();
+            const clickX = rect.left + rect.width / 2;
+            const clickY = rect.top + rect.height / 2;
+            UIRenderer.showFloatingText(actualBonus, clickX, clickY, false);
+            
+            // 播放音效（使用升级音效）
+            SoundManager.playUpgradeSound();
+            
+            // 更新UI
+            UIRenderer.updateFishCount(true);
+            UIRenderer.renderUpgrades();
+            
+            // 检查成就
+            AchievementManager.checkAchievements();
+            CosmeticManager.checkUnlocks();
+            
+            // 保存游戏
+            GameManager.saveGame();
+            
+            // 移除金色鱼
+            this.removeGoldenFish(fish);
+        },
+        
+        /**
+         * 移除金色鱼
+         */
+        removeGoldenFish(fish) {
+            if (!fish || !fish.parentNode) {
+                return;
+            }
+            
+            // 清除自动移除定时器
+            if (fish._autoRemoveTimer) {
+                clearTimeout(fish._autoRemoveTimer);
+            }
+            
+            // 添加淡出动画
+            fish.style.transition = 'opacity 0.3s ease';
+            fish.style.opacity = '0';
+            
+            // 延迟移除DOM元素
+            setTimeout(() => {
+                if (fish.parentNode) {
+                    fish.parentNode.removeChild(fish);
+                }
+                // 如果这是当前活动的金色鱼，清除引用
+                if (this.activeGoldenFish === fish) {
+                    this.activeGoldenFish = null;
+                }
+            }, 300);
+        },
+        
+        /**
+         * 启动提示气泡定时器
+         * 每X秒显示一个随机提示
+         */
+        startTipBubbleTimer() {
+            // 清除旧定时器
+            if (this.tipBubbleTimer) {
+                clearInterval(this.tipBubbleTimer);
+            }
+            
+            // 延迟首次显示（避免游戏刚启动就显示提示）
+            setTimeout(() => {
+                this.showRandomTip();
+                
+                // 设置定期显示
+                this.tipBubbleTimer = setInterval(() => {
+                    this.showRandomTip();
+                }, this.tipBubbleConfig.showInterval);
+            }, 10000); // 游戏开始10秒后显示第一条提示
+        },
+        
+        /**
+         * 显示随机提示气泡
+         */
+        showRandomTip() {
+            // 随机选择一个提示文本
+            const randomIndex = Math.floor(Math.random() * this.tipMessages.length);
+            const tipText = this.tipMessages[randomIndex];
+            
+            // 创建提示气泡
+            const bubble = document.createElement('div');
+            bubble.className = 'tip-bubble';
+            bubble.innerHTML = `
+                <div class="tip-bubble-content">
+                    <svg class="icon tip-bubble-icon"><use href="#icon-sparkle"></use></svg>
+                    <span class="tip-bubble-text">${tipText}</span>
+                </div>
+            `;
+            
+            // 添加到容器
+            this.tipBubblesContainer.appendChild(bubble);
+            
+            // 触发显示动画
+            requestAnimationFrame(() => {
+                bubble.classList.add('show');
+            });
+            
+            // 设置自动隐藏
+            setTimeout(() => {
+                bubble.classList.remove('show');
+                bubble.classList.add('hide');
+                
+                // 延迟移除DOM元素
+                setTimeout(() => {
+                    if (bubble.parentNode) {
+                        bubble.parentNode.removeChild(bubble);
+                    }
+                }, this.tipBubbleConfig.fadeDuration);
+            }, this.tipBubbleConfig.visibleDuration);
+        },
+        
+        /**
+         * 清理资源
+         */
+        cleanup() {
+            if (this.goldenFishSpawnTimer) {
+                clearInterval(this.goldenFishSpawnTimer);
+                this.goldenFishSpawnTimer = null;
+            }
+            
+            if (this.tipBubbleTimer) {
+                clearInterval(this.tipBubbleTimer);
+                this.tipBubbleTimer = null;
+            }
+            
+            // 移除所有活动的金色鱼
+            if (this.activeGoldenFish) {
+                this.removeGoldenFish(this.activeGoldenFish);
+            }
+        }
+    };
+
+    // ==================== 猫咪跟随控制器 ====================
+    /**
+     * 猫咪跟随控制器说明:
+     * 
+     * 功能:
+     * - 在主游戏区域内跟踪鼠标位置
+     * - 根据鼠标相对于猫中心的位置,轻微移动/倾斜猫
+     * - 使用CSS transform实现平滑跟随效果
+     * - 鼠标离开时平滑返回中性位置
+     * 
+     * 实现细节:
+     * - 使用requestAnimationFrame循环进行平滑插值(lerp)
+     * - 限制最大移动(±20px)和旋转(±8度)
+     * - 计算方向向量: 从猫中心到鼠标位置
+     * - 映射方向向量到有限的transform值
+     * - 移动设备检测: 禁用跟随或响应最后点击位置
+     * 
+     * 技术要点:
+     * - 使用包装器(cat-follow-wrapper)应用跟随transform
+     * - 内部cat元素保持点击动画不变
+     * - 使用will-change提示GPU加速
+     */
+    const CatFollowController = {
+        // DOM元素引用
+        followWrapper: null,
+        mainContent: null,
+        
+        // 配置参数
+        config: {
+            maxTranslate: 20,      // 最大平移距离(像素)
+            maxRotate: 8,          // 最大旋转角度(度)
+            lerpFactor: 0.15,      // 插值因子(0-1,越小越平滑)
+            isTouchDevice: false   // 是否为触摸设备
+        },
+        
+        // 状态变量
+        targetTransform: { x: 0, y: 0, rotate: 0 },  // 目标transform值
+        currentTransform: { x: 0, y: 0, rotate: 0 }, // 当前transform值
+        isActive: false,                              // 是否激活跟随
+        rafId: null,                                  // requestAnimationFrame ID
+        
+        /**
+         * 初始化跟随控制器
+         */
+        init() {
+            this.followWrapper = document.getElementById('cat-follow-wrapper');
+            this.mainContent = document.querySelector('.main-content');
+            
+            if (!this.followWrapper || !this.mainContent) {
+                console.warn('猫咪跟随控制器初始化失败: 缺少必要的DOM元素');
+                return;
+            }
+            
+            // 检测是否为触摸设备
+            this.config.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            // 如果是触摸设备,可以选择禁用或响应最后点击位置
+            // 这里选择禁用,保持简洁
+            if (this.config.isTouchDevice) {
+                return; // 触摸设备禁用跟随效果
+            }
+            
+            // 绑定鼠标事件
+            this.bindMouseEvents();
+            
+            // 启动动画循环
+            this.startAnimationLoop();
+        },
+        
+        /**
+         * 绑定鼠标事件
+         */
+        bindMouseEvents() {
+            // 鼠标移动事件
+            this.mainContent.addEventListener('mousemove', (e) => {
+                this.handleMouseMove(e);
+            });
+            
+            // 鼠标离开事件
+            this.mainContent.addEventListener('mouseleave', () => {
+                this.handleMouseLeave();
+            });
+        },
+        
+        /**
+         * 处理鼠标移动
+         * 计算方向向量并映射到有限的transform值
+         */
+        handleMouseMove(e) {
+            // 获取猫中心位置(相对于main-content)
+            const catRect = this.followWrapper.getBoundingClientRect();
+            const mainRect = this.mainContent.getBoundingClientRect();
+            
+            // 计算猫中心在main-content中的相对位置
+            const catCenterX = catRect.left - mainRect.left + catRect.width / 2;
+            const catCenterY = catRect.top - mainRect.top + catRect.height / 2;
+            
+            // 计算鼠标在main-content中的相对位置
+            const mouseX = e.clientX - mainRect.left;
+            const mouseY = e.clientY - mainRect.top;
+            
+            // 计算方向向量(从猫中心指向鼠标)
+            const dx = mouseX - catCenterX;
+            const dy = mouseY - catCenterY;
+            
+            // 计算距离(用于归一化)
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 如果距离太近,不应用跟随(避免抖动)
+            if (distance < 30) {
+                this.targetTransform = { x: 0, y: 0, rotate: 0 };
+                this.isActive = false;
+                return;
+            }
+            
+            // 归一化方向向量
+            const normalizedDx = dx / distance;
+            const normalizedDy = dy / distance;
+            
+            // 映射到有限的transform值
+            // 使用距离的平方根来创建更自然的跟随效果
+            const distanceFactor = Math.min(distance / 200, 1); // 200px为最大影响距离
+            
+            this.targetTransform = {
+                x: normalizedDx * this.config.maxTranslate * distanceFactor,
+                y: normalizedDy * this.config.maxTranslate * distanceFactor,
+                // 旋转角度: 基于水平方向向量,限制在±8度
+                rotate: Math.atan2(dy, dx) * (180 / Math.PI) * (this.config.maxRotate / 90) * distanceFactor
+            };
+            
+            this.isActive = true;
+        },
+        
+        /**
+         * 处理鼠标离开
+         * 平滑返回中性位置
+         */
+        handleMouseLeave() {
+            this.targetTransform = { x: 0, y: 0, rotate: 0 };
+            this.isActive = false;
+        },
+        
+        /**
+         * 启动动画循环
+         * 使用requestAnimationFrame进行平滑插值
+         */
+        startAnimationLoop() {
+            const update = () => {
+                // 线性插值(lerp)从当前值到目标值
+                this.currentTransform.x = this.lerp(
+                    this.currentTransform.x,
+                    this.targetTransform.x,
+                    this.config.lerpFactor
+                );
+                this.currentTransform.y = this.lerp(
+                    this.currentTransform.y,
+                    this.targetTransform.y,
+                    this.config.lerpFactor
+                );
+                this.currentTransform.rotate = this.lerp(
+                    this.currentTransform.rotate,
+                    this.targetTransform.rotate,
+                    this.config.lerpFactor
+                );
+                
+                // 应用transform
+                this.applyTransform();
+                
+                // 继续循环
+                this.rafId = requestAnimationFrame(update);
+            };
+            
+            // 启动循环
+            this.rafId = requestAnimationFrame(update);
+        },
+        
+        /**
+         * 线性插值函数
+         * @param {number} start - 起始值
+         * @param {number} end - 目标值
+         * @param {number} factor - 插值因子(0-1)
+         * @returns {number} 插值结果
+         */
+        lerp(start, end, factor) {
+            return start + (end - start) * factor;
+        },
+        
+        /**
+         * 应用transform到包装器
+         */
+        applyTransform() {
+            const { x, y, rotate } = this.currentTransform;
+            
+            // 使用transform组合translate和rotate
+            this.followWrapper.style.transform = `
+                translate(${x}px, ${y}px)
+                rotate(${rotate}deg)
+            `;
+        },
+        
+        /**
+         * 清理资源
+         */
+        cleanup() {
+            if (this.rafId) {
+                cancelAnimationFrame(this.rafId);
+                this.rafId = null;
+            }
+        }
+    };
+
     // ==================== 游戏逻辑管理 ====================
     const GameManager = {
         autoFishingInterval: null,
@@ -1001,8 +2113,23 @@
             SoundManager.init();
             this.bindEvents();
             
+            // 初始化背景效果系统（视差和浮动元素）
+            BackgroundEffectsManager.init();
+            
+            // 初始化猫咪表情管理器
+            CatExpressionManager.init();
+            
+            // 初始化事件管理器（金色鱼和提示气泡）
+            EventManager.init();
+            
+            // 初始化猫咪跟随控制器
+            CatFollowController.init();
+            
             // 更新全局倍率
             this.updateGlobalMultiplier();
+            
+            // 更新海星物品倍率加成
+            this.updateStarBonusMultiplier();
             
             // 初始化 UI
             UIRenderer.updateFishCount(false);
@@ -1011,6 +2138,7 @@
             UIRenderer.updatePrestigeBonus();
             UIRenderer.updateSeaStars();
             UIRenderer.renderUpgrades();
+            UIRenderer.renderStarShop(); // 渲染海星商店
             UIRenderer.updateMuteButton();
             
             // 应用外观
@@ -1081,6 +2209,9 @@
         },
 
         handleCatClick(e) {
+            // 记录点击到表情管理器
+            CatExpressionManager.recordClick();
+            
             // 动画效果
             elements.cat.classList.remove('clicking');
             requestAnimationFrame(() => {
@@ -1101,11 +2232,9 @@
             // 计算基础收益
             let baseGain = UpgradeCalculator.calculateActualClickValue();
             
-            // 检查暴击
+            // 检查暴击（包含幸运星项链加成）
             let isCrit = false;
-            const critChance = GameState.upgrades.luckyFish.getCritChance(
-                GameState.upgrades.luckyFish.level
-            );
+            const critChance = UpgradeCalculator.calculateTotalCritChance();
             
             if (Math.random() < critChance) {
                 isCrit = true;
@@ -1114,6 +2243,8 @@
                 );
                 baseGain = baseGain * critMultiplier;
                 SoundManager.playCritSound();
+                // 触发暴击表情
+                CatExpressionManager.triggerCrit();
             } else {
                 SoundManager.playClickSound();
             }
@@ -1163,6 +2294,7 @@
             UIRenderer.updateFishPerClick(true);
             UIRenderer.updateFishPerSecond();
             UIRenderer.renderUpgrades();
+            UIRenderer.renderStarShop(); // 更新海星商店（可能解锁新物品）
             
             // 如果购买了自动钓鱼，启动它
             if (upgradeKey === 'autoFishing' && upgrade.level === 1) {
@@ -1191,12 +2323,101 @@
         },
         
         /**
+         * 购买海星物品
+         * @param {string} itemKey - 物品ID
+         */
+        purchaseStarUpgrade(itemKey) {
+            const item = GameState.starUpgrades[itemKey];
+            
+            // 处理一次性购买的物品
+            if (item.purchased !== undefined) {
+                if (item.purchased) {
+                    return; // 已购买，不能重复购买
+                }
+                
+                const cost = item.getCost();
+                if (GameState.seaStars < cost) {
+                    return; // 海星不足
+                }
+                
+                GameState.seaStars -= cost;
+                item.purchased = true;
+                
+                // 收藏家纪念章可以解锁某些外观（这里可以扩展）
+                // 目前只是标记为已购买
+                
+                SoundManager.playUpgradeSound();
+                UIRenderer.updateSeaStars();
+                UIRenderer.renderStarShop();
+                this.saveGame();
+                return;
+            }
+            
+            // 处理可升级的物品
+            const currentLevel = item.level;
+            if (currentLevel >= item.maxLevel) {
+                return; // 已达到最大等级
+            }
+            
+            const cost = item.getCost(currentLevel);
+            if (GameState.seaStars < cost) {
+                return; // 海星不足
+            }
+            
+            GameState.seaStars -= cost;
+            item.level++;
+            
+            // 更新海星物品倍率加成
+            this.updateStarBonusMultiplier();
+            
+            // 更新UI显示
+            UIRenderer.updateFishPerClick(true);
+            UIRenderer.updateFishPerSecond();
+            UIRenderer.updateSeaStars();
+            UIRenderer.renderStarShop();
+            
+            SoundManager.playUpgradeSound();
+            
+            // 购买成功动画
+            setTimeout(() => {
+                const starItems = elements.starUpgradesList.querySelectorAll('.star-upgrade-item');
+                const itemKeys = Object.keys(GameState.starUpgrades);
+                const itemIndex = itemKeys.indexOf(itemKey);
+                
+                if (itemIndex !== -1 && starItems[itemIndex]) {
+                    const purchasedItem = starItems[itemIndex];
+                    purchasedItem.classList.remove('purchased');
+                    requestAnimationFrame(() => {
+                        purchasedItem.classList.add('purchased');
+                        setTimeout(() => {
+                            purchasedItem.classList.remove('purchased');
+                        }, 600);
+                    });
+                }
+            }, 0);
+            
+            this.saveGame();
+        },
+        
+        /**
          * 更新全局倍率
          */
         updateGlobalMultiplier() {
             GameState.globalMultiplier = GameState.upgrades.catCompanion.getMultiplier(
                 GameState.upgrades.catCompanion.level
             );
+        },
+        
+        /**
+         * 更新海星物品倍率加成
+         * 计算所有海星物品提供的总倍率加成
+         */
+        updateStarBonusMultiplier() {
+            // 深海罗盘提供的全局倍率加成
+            const compassMultiplier = GameState.starUpgrades.deepCompass.getMultiplier(
+                GameState.starUpgrades.deepCompass.level
+            );
+            GameState.starBonusMultiplier = compassMultiplier;
         },
 
         startAutoFishing() {
@@ -1291,6 +2512,9 @@
             
             GameState.autoFishingActive = false;
             this.updateGlobalMultiplier();
+            // 海星物品倍率在转生后保留，无需重新计算（因为level不会重置）
+            // 但为了确保正确，还是调用一次
+            this.updateStarBonusMultiplier();
             
             // 重启自动钓鱼（现在是0级，不会运行）
             if (this.autoFishingInterval) {
@@ -1308,6 +2532,7 @@
             UIRenderer.updatePrestigeBonus();
             UIRenderer.updateSeaStars();
             UIRenderer.renderUpgrades();
+            UIRenderer.renderStarShop(); // 转生后更新海星商店
             this.updatePrestigeButton();
             
             // 检查外观解锁
@@ -1328,7 +2553,15 @@
                     upgrades: {},
                     unlockedAchievements: Array.from(GameState.unlockedAchievements),
                     unlockedDpsMilestones: Array.from(GameState.unlockedDpsMilestones),
-                    cosmetics: GameState.cosmetics,
+                    cosmetics: {
+                        selected: GameState.cosmetics.selected,
+                        unlocked: {
+                            catColors: Array.from(GameState.cosmetics.unlocked.catColors),
+                            rodStyles: Array.from(GameState.cosmetics.unlocked.rodStyles),
+                            fishIcons: Array.from(GameState.cosmetics.unlocked.fishIcons),
+                            backgrounds: Array.from(GameState.cosmetics.unlocked.backgrounds)
+                        }
+                    },
                     muted: GameState.muted
                 };
                 
@@ -1337,6 +2570,23 @@
                     saveData.upgrades[key] = {
                         level: GameState.upgrades[key].level
                     };
+                });
+                
+                // 保存海星商店物品状态
+                saveData.starUpgrades = {};
+                Object.keys(GameState.starUpgrades).forEach(key => {
+                    const item = GameState.starUpgrades[key];
+                    if (item.purchased !== undefined) {
+                        // 一次性购买的物品
+                        saveData.starUpgrades[key] = {
+                            purchased: item.purchased
+                        };
+                    } else {
+                        // 可升级的物品
+                        saveData.starUpgrades[key] = {
+                            level: item.level
+                        };
+                    }
                 });
                 
                 localStorage.setItem('catFishingGame', JSON.stringify(saveData));
@@ -1366,11 +2616,19 @@
                             GameState.cosmetics.selected = Object.assign({}, GameState.cosmetics.selected, data.cosmetics.selected);
                         }
                         if (data.cosmetics.unlocked) {
-                            Object.keys(data.cosmetics.unlocked).forEach(key => {
-                                if (data.cosmetics.unlocked[key] instanceof Array) {
-                                    GameState.cosmetics.unlocked[key] = new Set(data.cosmetics.unlocked[key]);
-                                }
-                            });
+                            // 恢复已解锁的外观（将数组转换为Set）
+                            if (Array.isArray(data.cosmetics.unlocked.catColors)) {
+                                GameState.cosmetics.unlocked.catColors = new Set(data.cosmetics.unlocked.catColors);
+                            }
+                            if (Array.isArray(data.cosmetics.unlocked.rodStyles)) {
+                                GameState.cosmetics.unlocked.rodStyles = new Set(data.cosmetics.unlocked.rodStyles);
+                            }
+                            if (Array.isArray(data.cosmetics.unlocked.fishIcons)) {
+                                GameState.cosmetics.unlocked.fishIcons = new Set(data.cosmetics.unlocked.fishIcons);
+                            }
+                            if (Array.isArray(data.cosmetics.unlocked.backgrounds)) {
+                                GameState.cosmetics.unlocked.backgrounds = new Set(data.cosmetics.unlocked.backgrounds);
+                            }
                         }
                     }
                     
@@ -1379,6 +2637,24 @@
                         Object.keys(data.upgrades).forEach(key => {
                             if (GameState.upgrades[key] && data.upgrades[key].level !== undefined) {
                                 GameState.upgrades[key].level = data.upgrades[key].level;
+                            }
+                        });
+                    }
+                    
+                    // 加载海星商店物品状态（向后兼容：如果不存在则使用默认值）
+                    if (data.starUpgrades) {
+                        Object.keys(data.starUpgrades).forEach(key => {
+                            if (GameState.starUpgrades[key]) {
+                                const item = GameState.starUpgrades[key];
+                                const savedData = data.starUpgrades[key];
+                                
+                                if (item.purchased !== undefined) {
+                                    // 一次性购买的物品
+                                    item.purchased = savedData.purchased || false;
+                                } else {
+                                    // 可升级的物品
+                                    item.level = savedData.level !== undefined ? savedData.level : 0;
+                                }
                             }
                         });
                     }
