@@ -22,6 +22,9 @@
         CRIT_CHANCE_PER_LEVEL: 0.02,       // 每级增加的暴击率（2%）
         CRIT_MIN_MULTIPLIER: 2.0,          // 最小暴击倍率（2x）
         CRIT_MAX_MULTIPLIER: 5.0,          // 最大暴击倍率（5x）
+        // 超暴击配置（在现有暴击系统之上的稀有高倍暴击）
+        SUPER_CRIT_THRESHOLD: 4.0,         // 触发超暴击的倍率阈值（含），可根据需要调高到 4.5 ~ 5.0
+        SUPER_CRIT_EXTRA_CHANCE: 0.5,      // 额外概率门：达到阈值后只有 50% 几率成为“超暴击”（可设为1关闭此门）
         
         // 里程碑配置
         MILESTONES: [100, 1000, 10000, 100000, 1000000],
@@ -101,6 +104,8 @@
         fishCollectionCritBonus: 0.0,
         unlockedAchievements: new Set(),  // 已解锁的成就
         unlockedDpsMilestones: new Set(), // 已触发的DPS里程碑
+        // 已展示过的关键等级里程碑（避免重复提示），元素形式为 'upgradeKey-level'
+        seenKeyLevelMilestones: new Set(),
         
         // 外观系统状态
         cosmetics: {
@@ -115,7 +120,19 @@
                 rodStyles: new Set(['default']),
                 fishIcons: new Set(['default']),
                 backgrounds: new Set(['day'])
-            }
+            },
+            // 背景是否被用户手动选择（用于时间主题不覆盖用户选择）
+            backgroundUserSelected: false
+        },
+        
+        // 主题系统状态
+        currentTheme: 'neutral', // 'day' | 'night' | 'neutral'
+        
+        // 环境事件buff状态
+        ambientEvents: {
+            enabled: true,              // 环境事件是否启用
+            currentBuff: null,          // 当前活动的buff { type: 'aurora' | 'shootingStars', endTime: number, multiplier: number }
+            lastEventTime: 0            // 上次事件触发时间（用于避免重叠）
         },
         
         upgrades: {
@@ -275,6 +292,7 @@
         catBreathWrapper: document.getElementById('cat-breath-wrapper'),
         catSquashWrapper: document.getElementById('cat-squash-wrapper'),
         floatingTexts: document.getElementById('floating-texts'),
+        superCritOverlay: document.getElementById('super-crit-overlay'),
         upgradesList: document.getElementById('upgrades-list'),
         muteBtn: document.getElementById('mute-btn'),
         fishingRod: document.getElementById('fishing-rod'),
@@ -304,6 +322,7 @@
         milestoneBubbles: document.getElementById('milestone-bubbles'),
         starShopSection: document.getElementById('star-shop-section'),
         starUpgradesList: document.getElementById('star-upgrades-list'),
+        keyLevelNotificationContainer: document.getElementById('key-level-notification-container'),
         body: document.body
     };
 
@@ -332,12 +351,14 @@
             const starMultiplier = GameState.starBonusMultiplier;
             // 鱼鱼图鉴加成：每条鱼达到里程碑提供的全局收益倍率
             const collectionMultiplier = GameState.fishCollectionBonusMultiplier;
-            return baseClickPower * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier;
+            // 环境事件buff加成（极光/流星等）
+            const ambientBuffMultiplier = AmbientEventsManager.getBuffMultiplier();
+            return baseClickPower * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier * ambientBuffMultiplier;
         },
         
         /**
          * 计算实际每秒收益
-         * 加成来源：基础自动钓鱼、猫猫伙伴倍率、转生加成、海星物品加成
+         * 加成来源：基础自动钓鱼、猫猫伙伴倍率、转生加成、海星物品加成、环境事件buff
          * @returns {number} 实际每秒获得的鱼
          */
         calculateActualPerSecond() {
@@ -348,7 +369,9 @@
             const starMultiplier = GameState.starBonusMultiplier;
             // 鱼鱼图鉴加成：每条鱼达到里程碑提供的全局收益倍率
             const collectionMultiplier = GameState.fishCollectionBonusMultiplier;
-            return baseAutoFishing * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier;
+            // 环境事件buff加成（极光/流星等）
+            const ambientBuffMultiplier = AmbientEventsManager.getBuffMultiplier();
+            return baseAutoFishing * globalMultiplier * prestigeMultiplier * starMultiplier * collectionMultiplier * ambientBuffMultiplier;
         },
         
         /**
@@ -366,6 +389,370 @@
             // 鱼鱼图鉴里程碑提供的额外暴击率
             const collectionCritBonus = GameState.fishCollectionCritBonus;
             return Math.min(baseCritChance + necklaceBonus + collectionCritBonus, 1.0); // 最大100%
+        }
+    };
+
+    // ==================== 时间主题管理器 ====================
+    /**
+     * 时间主题管理器
+     * 功能：
+     * - 根据本地时间选择默认背景
+     * - 设置当前主题（day/night/neutral）
+     * - 仅在游戏启动时应用，不会覆盖用户手动选择
+     */
+    const TimeOfDayManager = {
+        /**
+         * 获取当前时间段
+         * @returns {string} 'morning' | 'evening' | 'other'
+         */
+        getTimePeriod() {
+            const now = new Date();
+            const hour = now.getHours(); // 0-23
+            
+            if (hour >= 6 && hour < 11) {
+                return 'morning';  // 6-11点：早晨
+            } else if (hour >= 19 && hour < 23) {
+                return 'evening';  // 19-23点：晚上
+            } else {
+                return 'other';    // 其他时间
+            }
+        },
+        
+        /**
+         * 根据时间段获取推荐的背景ID
+         * @returns {string|null} 背景ID，如果没有推荐则返回null
+         */
+        getRecommendedBackgroundId() {
+            const period = this.getTimePeriod();
+            
+            if (period === 'morning') {
+                // 早晨：推荐白天背景（warm colors）
+                return 'day';
+            } else if (period === 'evening') {
+                // 晚上：推荐夜晚/星空背景（cool colors）
+                // 优先选择night，如果没有解锁则选择ocean
+                if (GameState.cosmetics.unlocked.backgrounds.has('night')) {
+                    return 'night';
+                } else if (GameState.cosmetics.unlocked.backgrounds.has('ocean')) {
+                    return 'ocean';
+                }
+                return 'day'; // 兜底
+            }
+            
+            return null; // 其他时间不推荐
+        },
+        
+        /**
+         * 根据时间段设置主题
+         * @returns {string} 'day' | 'night' | 'neutral'
+         */
+        setTheme() {
+            const period = this.getTimePeriod();
+            
+            if (period === 'morning') {
+                GameState.currentTheme = 'day';
+            } else if (period === 'evening') {
+                GameState.currentTheme = 'night';
+            } else {
+                GameState.currentTheme = 'neutral';
+            }
+            
+            return GameState.currentTheme;
+        },
+        
+        /**
+         * 初始化：在游戏启动时应用时间主题
+         */
+        init() {
+            // 只在首次加载或用户未手动选择背景时应用
+            if (!GameState.cosmetics.backgroundUserSelected) {
+                const recommendedBg = this.getRecommendedBackgroundId();
+                
+                if (recommendedBg && GameState.cosmetics.unlocked.backgrounds.has(recommendedBg)) {
+                    GameState.cosmetics.selected.background = recommendedBg;
+                    
+                    // 显示提示气泡（延迟调用，确保EventManager已初始化）
+                    const period = this.getTimePeriod();
+                    setTimeout(() => {
+                        if (typeof EventManager !== 'undefined' && EventManager.showTipBubble) {
+                            if (period === 'evening') {
+                                EventManager.showTipBubble('现在是夜晚，海面变得更深邃了～', 4000);
+                            } else if (period === 'morning') {
+                                EventManager.showTipBubble('早晨的阳光洒在海面上，新的一天开始了～', 4000);
+                            }
+                        }
+                    }, 100);
+                }
+            }
+            
+            // 设置主题（用于调整粒子颜色等）
+            const theme = this.setTheme();
+            
+            // 设置body的data-theme属性，用于CSS主题选择器
+            if (document.body) {
+                document.body.setAttribute('data-theme', theme);
+            }
+        }
+    };
+
+    // ==================== 环境事件管理器 ====================
+    /**
+     * 环境事件管理器
+     * 功能：
+     * - 管理稀有天气/天空事件（极光、流星）
+     * - 事件触发概率和时间间隔
+     * - 可选的临时buff（+20%收益，持续30秒）
+     */
+    const AmbientEventsManager = {
+        config: {
+            enabled: true,
+            checkInterval: 90000,        // 每90秒检查一次
+            eventChance: 0.04,           // 4%触发概率
+            buffDuration: 30000,         // buff持续时间30秒
+            buffMultiplier: 1.2,         // +20%收益
+            minIntervalBetweenEvents: 120000 // 事件之间最小间隔2分钟
+        },
+        
+        checkTimer: null,
+        activeEvent: null,
+        eventContainer: null,
+        
+        /**
+         * 初始化环境事件系统
+         */
+        init() {
+            if (!GameState.ambientEvents.enabled) return;
+            
+            // 创建事件容器（在背景层上方，但低于主UI）
+            this.createEventContainer();
+            
+            // 启动事件检查循环
+            this.startEventLoop();
+        },
+        
+        /**
+         * 创建事件容器
+         */
+        createEventContainer() {
+            const container = document.createElement('div');
+            container.id = 'ambient-events-container';
+            container.className = 'ambient-events-container';
+            document.body.appendChild(container);
+            this.eventContainer = container;
+        },
+        
+        /**
+         * 启动事件检查循环
+         */
+        startEventLoop() {
+            if (this.checkTimer) {
+                clearInterval(this.checkTimer);
+            }
+            
+            // 延迟第一次检查（避免游戏刚启动就触发）
+            setTimeout(() => {
+                this.checkForEvent();
+                this.checkTimer = setInterval(() => {
+                    this.checkForEvent();
+                }, this.config.checkInterval);
+            }, 30000); // 30秒后开始第一次检查
+        },
+        
+        /**
+         * 检查是否触发事件
+         */
+        checkForEvent() {
+            // 如果事件系统未启用或有活动事件，跳过
+            if (!GameState.ambientEvents.enabled || this.activeEvent) {
+                return;
+            }
+            
+            // 检查最小间隔
+            const timeSinceLastEvent = Date.now() - GameState.ambientEvents.lastEventTime;
+            if (timeSinceLastEvent < this.config.minIntervalBetweenEvents) {
+                return;
+            }
+            
+            // 随机决定是否触发
+            if (Math.random() < this.config.eventChance) {
+                this.triggerRandomEvent();
+            }
+        },
+        
+        /**
+         * 触发随机事件
+         */
+        triggerRandomEvent() {
+            const events = ['aurora', 'shootingStars'];
+            const eventType = events[Math.floor(Math.random() * events.length)];
+            
+            this.startEvent(eventType);
+        },
+        
+        /**
+         * 开始一个事件
+         * @param {string} eventType - 'aurora' | 'shootingStars'
+         */
+        startEvent(eventType) {
+            if (this.activeEvent) {
+                return; // 已有活动事件
+            }
+            
+            this.activeEvent = eventType;
+            GameState.ambientEvents.lastEventTime = Date.now();
+            
+            // 创建视觉效果
+            if (eventType === 'aurora') {
+                this.createAuroraEvent();
+            } else if (eventType === 'shootingStars') {
+                this.createShootingStarsEvent();
+            }
+            
+            // 应用buff
+            this.applyBuff(eventType);
+            
+            // 显示提示消息
+            if (eventType === 'aurora') {
+                EventManager.showTipBubble('极光出现啦！收益暂时提升～', 4000);
+            } else if (eventType === 'shootingStars') {
+                EventManager.showTipBubble('流星划过天空！收益暂时提升～', 4000);
+            }
+        },
+        
+        /**
+         * 创建极光事件视觉效果
+         */
+        createAuroraEvent() {
+            if (!this.eventContainer) return;
+            
+            const auroraLayer = document.createElement('div');
+            auroraLayer.className = 'ambient-event-aurora';
+            this.eventContainer.appendChild(auroraLayer);
+            
+            // 5秒后移除
+            setTimeout(() => {
+                auroraLayer.style.opacity = '0';
+                auroraLayer.style.transition = 'opacity 1s ease-out';
+                setTimeout(() => {
+                    if (auroraLayer.parentNode) {
+                        auroraLayer.parentNode.removeChild(auroraLayer);
+                    }
+                    if (this.activeEvent === 'aurora') {
+                        this.activeEvent = null;
+                    }
+                }, 1000);
+            }, 5000);
+        },
+        
+        /**
+         * 创建流星事件视觉效果
+         */
+        createShootingStarsEvent() {
+            if (!this.eventContainer) return;
+            
+            const starCount = 3 + Math.floor(Math.random() * 3); // 3-5颗流星
+            
+            for (let i = 0; i < starCount; i++) {
+                setTimeout(() => {
+                    this.createShootingStar();
+                }, i * 300); // 每300ms一颗
+            }
+            
+            // 所有流星结束后清理
+            setTimeout(() => {
+                if (this.activeEvent === 'shootingStars') {
+                    this.activeEvent = null;
+                }
+            }, starCount * 300 + 2000);
+        },
+        
+        /**
+         * 创建单个流星
+         */
+        createShootingStar() {
+            if (!this.eventContainer) return;
+            
+            const star = document.createElement('div');
+            star.className = 'ambient-event-shooting-star';
+            
+            // 随机起始位置和角度
+            const startY = Math.random() * 30 + 5; // 5-35%
+            const angle = 30 + Math.random() * 30; // 30-60度
+            const duration = 2000 + Math.random() * 1000; // 2-3秒
+            
+            star.style.top = startY + '%';
+            star.style.left = '-20px';
+            star.style.transform = `rotate(${angle}deg)`;
+            
+            this.eventContainer.appendChild(star);
+            
+            // 触发动画
+            requestAnimationFrame(() => {
+                star.style.transition = `transform ${duration}ms linear, opacity ${duration}ms linear`;
+                star.style.transform = `translateX(calc(100vw + 100px)) translateY(${Math.tan(angle * Math.PI / 180) * (window.innerWidth + 100)}px) rotate(${angle}deg)`;
+                star.style.opacity = '0';
+            });
+            
+            // 清理
+            setTimeout(() => {
+                if (star.parentNode) {
+                    star.parentNode.removeChild(star);
+                }
+            }, duration);
+        },
+        
+        /**
+         * 应用buff
+         * @param {string} eventType - 事件类型
+         */
+        applyBuff(eventType) {
+            GameState.ambientEvents.currentBuff = {
+                type: eventType,
+                endTime: Date.now() + this.config.buffDuration,
+                multiplier: this.config.buffMultiplier
+            };
+            
+            // 更新UI显示
+            UIRenderer.updateFishPerSecond();
+            
+            // 30秒后自动移除buff
+            setTimeout(() => {
+                this.removeBuff();
+            }, this.config.buffDuration);
+        },
+        
+        /**
+         * 移除buff
+         */
+        removeBuff() {
+            if (GameState.ambientEvents.currentBuff) {
+                GameState.ambientEvents.currentBuff = null;
+                UIRenderer.updateFishPerSecond();
+                UIRenderer.updateFishPerClick();
+            }
+        },
+        
+        /**
+         * 检查并更新buff状态（在收入计算时调用）
+         */
+        updateBuffStatus() {
+            if (GameState.ambientEvents.currentBuff) {
+                if (Date.now() >= GameState.ambientEvents.currentBuff.endTime) {
+                    this.removeBuff();
+                }
+            }
+        },
+        
+        /**
+         * 获取当前buff倍率
+         * @returns {number} 倍率（默认1.0）
+         */
+        getBuffMultiplier() {
+            this.updateBuffStatus();
+            if (GameState.ambientEvents.currentBuff) {
+                return GameState.ambientEvents.currentBuff.multiplier;
+            }
+            return 1.0;
         }
     };
 
@@ -434,6 +821,44 @@
             } catch (e) {
                 console.warn('播放音效失败:', e);
             }
+        },
+        
+        /**
+         * 超暴击音效：在普通暴击基础上，音高更尖锐、时长略短，制造“电光一闪”的感觉
+         */
+        playSuperCritSound() {
+            if (GameState.muted || !this.audioContext) return;
+            try {
+                const now = this.audioContext.currentTime;
+
+                // 主音：极短促、高音的刺耳“闪光”感
+                const oscMain = this.audioContext.createOscillator();
+                const gainMain = this.audioContext.createGain();
+                oscMain.connect(gainMain);
+                gainMain.connect(this.audioContext.destination);
+                oscMain.type = 'square';
+                oscMain.frequency.setValueAtTime(1000, now);
+                oscMain.frequency.exponentialRampToValueAtTime(2200, now + 0.1);
+                gainMain.gain.setValueAtTime(0.45, now);
+                gainMain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                oscMain.start(now);
+                oscMain.stop(now + 0.1);
+
+                // 叠加一个微弱的高频“闪烁”层，增加厚度
+                const oscLayer = this.audioContext.createOscillator();
+                const gainLayer = this.audioContext.createGain();
+                oscLayer.connect(gainLayer);
+                gainLayer.connect(this.audioContext.destination);
+                oscLayer.type = 'triangle';
+                oscLayer.frequency.setValueAtTime(2400, now);
+                oscLayer.frequency.exponentialRampToValueAtTime(3200, now + 0.12);
+                gainLayer.gain.setValueAtTime(0.25, now);
+                gainLayer.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                oscLayer.start(now);
+                oscLayer.stop(now + 0.12);
+            } catch (e) {
+                console.warn('播放音效失败:', e);
+            }
         }
     };
 
@@ -451,6 +876,29 @@
             }
             
             elements.fishCount.textContent = newValue;
+        },
+
+        /**
+         * 触发一次短促的全屏超暴击特效（柔和闪光 + 轻微缩放）
+         * 在 CSS 中通过 keyframes 控制具体动画。
+         */
+        triggerSuperCritFX() {
+            if (!elements.superCritOverlay) return;
+
+            // 避免动画叠加：先强制重置一次 class
+            elements.superCritOverlay.classList.remove('super-crit-overlay--active');
+            // 触发强制重绘，再重新加上 class 以重新播放动画
+            // eslint-disable-next-line no-unused-expressions
+            void elements.superCritOverlay.offsetWidth;
+            elements.superCritOverlay.classList.add('super-crit-overlay--active');
+
+            const mainContent = elements.cat.closest('.main-content');
+            if (mainContent) {
+                mainContent.classList.remove('super-crit-pulse');
+                // eslint-disable-next-line no-unused-expressions
+                void mainContent.offsetWidth;
+                mainContent.classList.add('super-crit-pulse');
+            }
         },
 
         updateFishPerClick(animate = true) {
@@ -501,13 +949,43 @@
             }
         },
 
-        showFloatingText(amount, x, y, isCrit = false) {
+        /**
+         * 显示浮动文字
+         * @param {number} amount 实际获得的鱼鱼数量
+         * @param {number} x 屏幕坐标 X
+         * @param {number} y 屏幕坐标 Y
+         * @param {boolean|Object} options 兼容旧签名的参数：
+         *  - 旧版：isCrit:boolean
+         *  - 新版：{ isCrit?:boolean, isSuperCrit?:boolean, multiplier?:number }
+         */
+        showFloatingText(amount, x, y, options = false) {
             const text = document.createElement('div');
             text.className = 'floating-text';
+
+            // 兼容旧接口：第四个参数为布尔值时视为 isCrit
+            let isCrit = false;
+            let isSuperCrit = false;
+            let multiplier = null;
+            if (typeof options === 'boolean') {
+                isCrit = options;
+            } else if (options && typeof options === 'object') {
+                isCrit = !!options.isCrit;
+                isSuperCrit = !!options.isSuperCrit;
+                if (typeof options.multiplier === 'number') {
+                    multiplier = options.multiplier;
+                }
+            }
+
             const formattedAmount = Math.floor(amount).toLocaleString();
-            if (isCrit) {
-                text.style.color = '#FF6B6B';
-                text.style.fontSize = '28px';
+
+            if (isSuperCrit) {
+                // 超暴击：更大、更亮的文字 + 特殊文案
+                text.classList.add('floating-text--super-crit');
+                const multiplierText = multiplier ? ` x${multiplier.toFixed(1)}` : '';
+                text.textContent = `超暴击!!! +${formattedAmount}${multiplierText}`;
+            } else if (isCrit) {
+                // 普通暴击：保持原有手感，但用 class 管理样式
+                text.classList.add('floating-text--crit');
                 text.textContent = `暴击! +${formattedAmount} 🐟`;
             } else {
                 text.textContent = `+${formattedAmount} 鱼鱼`;
@@ -981,12 +1459,12 @@
         },
 
         /**
-         * 打开图鉴面板
+         * 打开图鉴面板（使用PanelManager实现点击外部关闭）
          */
         showPanel() {
             if (!elements.fishCollectionPanel) return;
             this.renderPanel();
-            elements.fishCollectionPanel.style.display = 'flex';
+            PanelManager.openPanel(elements.fishCollectionPanel);
         },
 
         /**
@@ -994,7 +1472,7 @@
          */
         hidePanel() {
             if (!elements.fishCollectionPanel) return;
-            elements.fishCollectionPanel.style.display = 'none';
+            PanelManager.closePanel(elements.fishCollectionPanel);
         },
 
         /**
@@ -1199,6 +1677,21 @@
             const bgDef = CosmeticDefinitions.backgrounds.find(b => b.id === background);
             if (bgDef) {
                 elements.body.style.background = bgDef.gradient;
+                
+                // 根据背景类型更新主题（用于粒子颜色调整）
+                // 夜晚/海洋背景 -> night主题，白天/日落背景 -> day主题，其他 -> neutral
+                if (background === 'night' || background === 'ocean' || background === 'aurora') {
+                    GameState.currentTheme = 'night';
+                } else if (background === 'day' || background === 'sunset') {
+                    GameState.currentTheme = 'day';
+                } else {
+                    GameState.currentTheme = 'neutral';
+                }
+                
+                // 更新body的data-theme属性
+                if (document.body) {
+                    document.body.setAttribute('data-theme', GameState.currentTheme);
+                }
             }
             
             // 通知氛围效果管理器更新活动效果
@@ -1223,6 +1716,8 @@
                 GameState.cosmetics.selected.fishIcon = id;
             } else if (category === 'background') {
                 GameState.cosmetics.selected.background = id;
+                // 标记用户已手动选择背景（时间主题不会再覆盖）
+                GameState.cosmetics.backgroundUserSelected = true;
             }
             
             // 实时更新DOM中的选中状态 (无需关闭面板)
@@ -1565,7 +2060,11 @@
         },
         
         /**
-         * 生成小动物
+         * 生成小动物（背景鱼 / 鸟）
+         * 视觉说明：
+         * - 使用 .ambient-creature 容器 + 内部 SVG 图标（鱼或鸟）
+         * - 变体通过 class（ambient-creature--fish-1/2/3, ambient-creature--bird-1/2）与不同 SVG symbol 匹配
+         * - 仅为装饰，不再参与点击奖励逻辑
          */
         spawnAnimal(source) {
             // 使用body作为容器，因为小动物需要跨越整个屏幕
@@ -1573,11 +2072,8 @@
             if (!container) return;
             
             // 限制同时存在的动物数量（最多3个）
-            const existingAnimals = container.querySelectorAll('.ambient-animal');
+            const existingAnimals = container.querySelectorAll('.ambient-creature');
             if (existingAnimals.length >= 3) return;
-            
-            const animal = document.createElement('div');
-            animal.className = 'ambient-animal';
             
             // 根据来源选择动物类型
             let animalType = 'bird'; // 默认小鸟
@@ -1589,39 +2085,73 @@
                 animalType = Math.random() > 0.5 ? 'bird' : 'fish';
             }
             
-            animal.classList.add(`ambient-animal--${animalType}`);
+            // 创建容器
+            const creature = document.createElement('div');
+            creature.classList.add('ambient-creature', `ambient-creature--${animalType}`);
+            
+            // 随机选择具体变体与对应 SVG symbol
+            let variantIndex;
+            let symbolId;
+            if (animalType === 'fish') {
+                variantIndex = 1 + Math.floor(Math.random() * 3); // 1~3
+                creature.classList.add(`ambient-creature--fish-${variantIndex}`);
+                symbolId = `#icon-ambient-fish-${variantIndex}`;
+            } else {
+                variantIndex = 1 + Math.floor(Math.random() * 2); // 1~2
+                creature.classList.add(`ambient-creature--bird-${variantIndex}`);
+                symbolId = `#icon-ambient-bird-${variantIndex}`;
+            }
+            
+            // 内部 SVG 图标结构
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('ambient-creature__icon', `ambient-creature__icon--${animalType}`);
+            svg.setAttribute('aria-hidden', 'true');
+            
+            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            // 使用 href 而不是 xlink:href，和现有 sprite 保持一致
+            use.setAttribute('href', symbolId);
+            svg.appendChild(use);
+            
+            creature.appendChild(svg);
             
             // 设置随机起始位置和方向
-            const startY = 20 + Math.random() * 60; // 20%-80%高度
+            let startY;
+            if (animalType === 'fish') {
+                // 鱼在屏幕中下部水域内游动
+                startY = 45 + Math.random() * 40; // 45%-85% 高度
+            } else {
+                // 鸟在屏幕上半部天空中飞行
+                startY = 8 + Math.random() * 20; // 8%-28% 高度
+            }
+            
             const direction = Math.random() > 0.5 ? 'left' : 'right';
             const duration = 3000 + Math.random() * 2000; // 3-5秒
             
-            animal.style.setProperty('--start-y', `${startY}%`);
-            animal.style.setProperty('--direction', direction === 'left' ? '-1' : '1');
-            animal.style.setProperty('--duration', `${duration}ms`);
+            creature.style.setProperty('--start-y', `${startY}%`);
+            creature.style.setProperty('--direction', direction === 'left' ? '-1' : '1');
+            creature.style.setProperty('--duration', `${duration}ms`);
             
-            // 设置初始位置（从屏幕外开始）
+            // 设置初始水平位置（从屏幕外开始）
             if (direction === 'left') {
-                animal.style.left = '100%';
+                // 从右往左：起点在右边缘外一点
+                creature.style.left = '100%';
             } else {
-                animal.style.left = '-50px';
+                // 从左往右：起点在左边缘外一点
+                creature.style.left = '-10vw';
             }
             
-            // 添加点击事件（可选：点击获得小奖励）
-            animal.addEventListener('click', () => {
-                GameState.fish += 1;
-                UIRenderer.updateFishCount();
-                animal.remove();
-            });
+            // 随机整体缩放，增加生物大小的多样性
+            const scale = 0.8 + Math.random() * 0.6; // 0.8 ~ 1.4
+            creature.style.transform = `scale(${scale})`;
             
-            container.appendChild(animal);
+            container.appendChild(creature);
             
             // 动画结束后移除
             setTimeout(() => {
-                if (animal.parentNode) {
-                    animal.remove();
+                if (creature.parentNode) {
+                    creature.remove();
                 }
-            }, duration + 500);
+            }, duration + 800);
         },
         
         /**
@@ -1691,6 +2221,155 @@
         }
     };
 
+    // ==================== 关键等级通知配置 ====================
+    const KeyLevelMilestones = [
+        {
+            upgradeKey: 'autoFishing',
+            level: 5,
+            title: '自动钓鱼认真工作中！',
+            message: '自动钓鱼助手进入『认真工作』状态，每秒收益显著提高！'
+        },
+        {
+            upgradeKey: 'autoFishing',
+            level: 10,
+            title: '挂机也能暴富！',
+            message: '你的自动钓鱼团队已经成规模，挂机收益非常可观～'
+        },
+        {
+            upgradeKey: 'clickPower',
+            level: 10,
+            title: '鱼竿达人',
+            message: '你的鱼竿已经非常熟练，点击收益大幅提升！'
+        },
+        {
+            upgradeKey: 'clickPower',
+            level: 20,
+            title: '猫猫钓神在此',
+            message: '每一次点击都像是必中的完美一钓！'
+        },
+        {
+            upgradeKey: 'luckyFish',
+            level: 5,
+            title: '幸运值大幅提升',
+            message: '幸运小鱼干让暴击机会变得更多了～'
+        },
+        {
+            upgradeKey: 'luckyFish',
+            level: 10,
+            title: '锦鲤附体',
+            message: '暴击已经成为日常，鱼鱼飞速进账！'
+        },
+        {
+            upgradeKey: 'catCompanion',
+            level: 3,
+            title: '更多猫猫加入钓鱼小队',
+            message: '猫猫伙伴的加成变得更明显了，全局收益进一步提升！'
+        }
+    ];
+
+    // ==================== 关键等级通知管理器 ====================
+    const KeyLevelNotification = {
+        queue: [],
+        isShowing: false,
+        currentTimeoutId: null,
+        visibleDuration: 5500, // 4–6 秒之间，取中值
+
+        /**
+         * 检查是否触发关键等级通知
+         * @param {string} upgradeKey
+         * @param {number} level
+         */
+        check(upgradeKey, level) {
+            const milestone = KeyLevelMilestones.find(m => m.upgradeKey === upgradeKey && m.level === level);
+            if (!milestone) {
+                return;
+            }
+
+            const id = `${upgradeKey}-${level}`;
+            if (GameState.seenKeyLevelMilestones.has(id)) {
+                return; // 已经展示过
+            }
+
+            GameState.seenKeyLevelMilestones.add(id);
+
+            // 入队
+            this.queue.push({
+                id,
+                upgradeKey,
+                level,
+                title: milestone.title,
+                message: milestone.message
+            });
+
+            // 立刻尝试显示（如果当前没有卡片）
+            this._tryShowNext();
+        },
+
+        _tryShowNext() {
+            if (this.isShowing) return;
+            if (!this.queue.length) return;
+            if (!elements.keyLevelNotificationContainer) return;
+
+            const next = this.queue.shift();
+            this.isShowing = true;
+            this._showCard(next);
+        },
+
+        _showCard(data) {
+            const container = elements.keyLevelNotificationContainer;
+            container.innerHTML = '';
+
+            const card = document.createElement('div');
+            card.className = 'key-level-notification-card';
+            card.innerHTML = `
+                <svg class="icon key-level-notification-icon"><use href="#icon-milestone"></use></svg>
+                <div class="key-level-notification-content">
+                    <div class="key-level-notification-title">
+                        <span>${data.title}</span>
+                        <span class="key-level-notification-title-badge">关键等级</span>
+                    </div>
+                    <div class="key-level-notification-text">${data.message}</div>
+                </div>
+                <button class="key-level-notification-close" aria-label="关闭">
+                    <svg class="icon"><use href="#icon-close"></use></svg>
+                </button>
+            `;
+
+            container.appendChild(card);
+
+            const closeBtn = card.querySelector('.key-level-notification-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    this._hideCard(card, false);
+                });
+            }
+
+            // 自动消失
+            this.currentTimeoutId = setTimeout(() => {
+                this._hideCard(card, true);
+            }, this.visibleDuration);
+        },
+
+        _hideCard(card, fromTimeout) {
+            if (!card) return;
+
+            if (this.currentTimeoutId && fromTimeout) {
+                clearTimeout(this.currentTimeoutId);
+                this.currentTimeoutId = null;
+            }
+
+            card.classList.add('key-level-notification-card--leaving');
+
+            setTimeout(() => {
+                if (card.parentNode) {
+                    card.parentNode.removeChild(card);
+                }
+                this.isShowing = false;
+                this._tryShowNext();
+            }, 450);
+        }
+    };
+
     // ==================== 面板管理器 - 统一管理面板的打开/关闭 ====================
     /**
      * 面板管理器说明:
@@ -1746,18 +2425,25 @@
         
         /**
          * 更新按钮active状态
-         * 当成就面板打开时，激活achievements-btn；当外观面板打开时，激活cosmetics-btn
+         * 当成就面板打开时，激活achievements-btn；当外观面板打开时，激活cosmetics-btn；当图鉴面板打开时，激活fish-collection-btn
          */
         updateButtonStates(panelElement) {
             // 移除所有按钮的active状态
             elements.achievementsBtn.classList.remove('active');
             elements.cosmeticsBtn.classList.remove('active');
+            if (elements.fishCollectionBtn) {
+                elements.fishCollectionBtn.classList.remove('active');
+            }
             
             // 根据当前打开的面板激活对应按钮
             if (panelElement === elements.achievementsPanel) {
                 elements.achievementsBtn.classList.add('active');
             } else if (panelElement === elements.cosmeticsPanel) {
                 elements.cosmeticsBtn.classList.add('active');
+            } else if (panelElement === elements.fishCollectionPanel) {
+                if (elements.fishCollectionBtn) {
+                    elements.fishCollectionBtn.classList.add('active');
+                }
             }
         },
         
@@ -2882,6 +3568,273 @@
         }
     };
 
+    // ==================== 猫猫对话气泡管理器 ====================
+    /**
+     * 猫猫对话气泡管理器说明:
+     * 
+     * 功能:
+     * - 独立于现有提示气泡系统（tip-bubbles）
+     * - 定期显示可爱的对话气泡在猫猫附近
+     * - 云朵风格UI，带有摇摆动画
+     * 
+     * 触发逻辑:
+     * - 每30-60秒检查一次是否显示新气泡
+     * - 玩家空闲时（未点击）增加显示概率
+     * - 确保至少间隔N秒才显示下一个气泡
+     * 
+     * 对话文本:
+     * - 独立的中文对话文本池（15-25条）
+     * - 避免重复最近显示的文本
+     * - 软萌可爱的风格
+     */
+    const CatDialogueManager = {
+        container: null,
+        dialogueTimer: null,
+        lastDialogueTime: 0,
+        currentDialogue: null, // 当前活动的对话气泡
+        lastShownIndexes: [], // 最近显示的对话索引历史（避免重复）
+        
+        // 配置参数
+        config: {
+            checkInterval: 30000,        // 检查间隔（30秒）
+            minInterval: 25000,          // 两次对话之间的最小间隔（25秒）
+            baseProbability: 0.3,        // 基础显示概率（30%）
+            idleBoostProbability: 0.7,   // 空闲时的额外概率提升
+            idleThreshold: 10000,        // 空闲阈值（10秒未点击）
+            visibleDuration: 5000,       // 可见持续时间（5秒）
+            fadeDuration: 400,           // 淡入淡出时间（0.4秒）
+            historySize: 3               // 历史记录大小（避免重复最近3条）
+        },
+        
+        // 猫猫对话文本池 - 独立于提示气泡系统
+        // 软萌可爱的中文对话，与游戏体验相关但不过于功能导向
+        dialoguePool: [
+            '今天的海好平静呀～',
+            '再钓 300 条鱼就能换新鱼竿了！',
+            '小鱼小鱼快上钩～',
+            '休息一下也没关系，我会陪你的～',
+            '听说远海那边有稀有鱼……',
+            '今天的运气好像不错呢～',
+            '海浪声真好听，让人想一直待在这里～',
+            '你看，那边有鱼在游！',
+            '要不要一起数数今天钓了多少条？',
+            '偶尔停下来看看风景也不错呢～',
+            '感觉今天的收获会很丰富！',
+            '不知道深海下有什么样的鱼呢……',
+            '海风吹得好舒服～',
+            '每一条鱼都是我们努力的见证呢！',
+            '虽然累了，但还是想继续钓鱼～',
+            '你发现了吗？每次点击我都在认真钓鱼哦！',
+            '海面上的波光好美……',
+            '真希望每天都能这样悠闲地钓鱼～',
+            '看到你陪我，我真的很开心～',
+            '要不要试试看能钓到多少条鱼？',
+            '偶尔的金色小鱼真的让人兴奋呢！',
+            '海星好漂亮，像天上的星星一样～',
+            '一步一步来，慢慢积累总会变多的～',
+            '今天的阳光/月光照在海面上真好看～'
+        ],
+        
+        // 上次点击时间（用于判断是否空闲）
+        lastClickTime: Date.now(),
+        
+        /**
+         * 初始化对话管理器
+         */
+        init() {
+            this.container = document.getElementById('cat-dialogue-container');
+            
+            if (!this.container) {
+                console.warn('猫猫对话气泡管理器初始化失败: 缺少容器元素');
+                return;
+            }
+            
+            // 监听点击事件，更新最后点击时间
+            document.addEventListener('click', () => {
+                this.lastClickTime = Date.now();
+            }, true); // 使用捕获阶段，确保能捕获所有点击
+            
+            // 延迟启动（避免游戏刚启动就显示）
+            setTimeout(() => {
+                this.startDialogueTimer();
+            }, 15000); // 游戏开始15秒后开始检查
+        },
+        
+        /**
+         * 启动对话定时器
+         */
+        startDialogueTimer() {
+            // 清除旧定时器
+            if (this.dialogueTimer) {
+                clearInterval(this.dialogueTimer);
+            }
+            
+            // 立即检查一次
+            this.checkAndShowDialogue();
+            
+            // 设置定期检查
+            this.dialogueTimer = setInterval(() => {
+                this.checkAndShowDialogue();
+            }, this.config.checkInterval);
+        },
+        
+        /**
+         * 检查并显示对话气泡
+         */
+        checkAndShowDialogue() {
+            // 如果已经有对话在显示，跳过
+            if (this.currentDialogue) {
+                return;
+            }
+            
+            // 检查是否达到最小间隔
+            const timeSinceLastDialogue = Date.now() - this.lastDialogueTime;
+            if (timeSinceLastDialogue < this.config.minInterval) {
+                return;
+            }
+            
+            // 计算显示概率
+            let probability = this.config.baseProbability;
+            
+            // 检查是否空闲（未点击时间超过阈值）
+            const timeSinceLastClick = Date.now() - this.lastClickTime;
+            if (timeSinceLastClick > this.config.idleThreshold) {
+                probability += this.config.idleBoostProbability;
+            }
+            
+            // 根据概率决定是否显示
+            if (Math.random() < probability) {
+                this.showDialogue();
+            }
+        },
+        
+        /**
+         * 显示对话气泡
+         */
+        showDialogue() {
+            // 如果已经有对话在显示，先移除
+            if (this.currentDialogue) {
+                this.hideDialogue();
+            }
+            
+            // 选择一个对话文本（避免重复最近显示的）
+            const dialogueText = this.selectDialogue();
+            
+            // 创建对话气泡元素
+            const bubble = document.createElement('div');
+            bubble.className = 'cat-dialogue-bubble';
+            
+            // 随机选择位置（左侧、右侧或上方）
+            const position = Math.random();
+            if (position < 0.4) {
+                bubble.classList.add('cat-dialogue-bubble--left');
+            } else if (position < 0.8) {
+                bubble.classList.add('cat-dialogue-bubble--right');
+            } else {
+                bubble.classList.add('cat-dialogue-bubble--top');
+            }
+            
+            // 设置文本内容
+            bubble.innerHTML = `<span class="cat-dialogue-bubble-text">${dialogueText}</span>`;
+            
+            // 添加点击事件（点击可立即关闭）
+            bubble.addEventListener('click', () => {
+                this.hideDialogue();
+            });
+            
+            // 添加到容器
+            this.container.appendChild(bubble);
+            this.currentDialogue = bubble;
+            
+            // 触发显示动画
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    bubble.classList.add('show');
+                });
+            });
+            
+            // 设置自动隐藏
+            setTimeout(() => {
+                this.hideDialogue();
+            }, this.config.visibleDuration);
+            
+            // 更新最后显示时间
+            this.lastDialogueTime = Date.now();
+        },
+        
+        /**
+         * 隐藏对话气泡
+         */
+        hideDialogue() {
+            if (!this.currentDialogue) {
+                return;
+            }
+            
+            const bubble = this.currentDialogue;
+            
+            // 添加淡出动画
+            bubble.classList.remove('show');
+            bubble.classList.add('hide');
+            
+            // 延迟移除DOM元素
+            setTimeout(() => {
+                if (bubble.parentNode) {
+                    bubble.parentNode.removeChild(bubble);
+                }
+                if (this.currentDialogue === bubble) {
+                    this.currentDialogue = null;
+                }
+            }, this.config.fadeDuration);
+        },
+        
+        /**
+         * 选择对话文本（避免重复最近显示的）
+         */
+        selectDialogue() {
+            let availableIndexes = [];
+            
+            // 找出不在历史记录中的索引
+            for (let i = 0; i < this.dialoguePool.length; i++) {
+                if (!this.lastShownIndexes.includes(i)) {
+                    availableIndexes.push(i);
+                }
+            }
+            
+            // 如果所有对话都在历史记录中，重置历史记录
+            if (availableIndexes.length === 0) {
+                availableIndexes = Array.from({ length: this.dialoguePool.length }, (_, i) => i);
+                this.lastShownIndexes = [];
+            }
+            
+            // 随机选择一个可用索引
+            const randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            
+            // 添加到历史记录
+            this.lastShownIndexes.push(randomIndex);
+            
+            // 保持历史记录大小
+            if (this.lastShownIndexes.length > this.config.historySize) {
+                this.lastShownIndexes.shift();
+            }
+            
+            return this.dialoguePool[randomIndex];
+        },
+        
+        /**
+         * 清理资源
+         */
+        cleanup() {
+            if (this.dialogueTimer) {
+                clearInterval(this.dialogueTimer);
+                this.dialogueTimer = null;
+            }
+            
+            if (this.currentDialogue) {
+                this.hideDialogue();
+            }
+        }
+    };
+
     // ==================== 猫咪跟随控制器 ====================
     /**
      * 猫咪跟随控制器说明:
@@ -3153,6 +4106,9 @@
             // 初始化事件管理器（金色鱼和提示气泡）
             EventManager.init();
             
+            // 初始化猫猫对话气泡管理器
+            CatDialogueManager.init();
+            
             // 初始化猫咪跟随控制器
             CatFollowController.init();
             
@@ -3175,7 +4131,15 @@
             
             // 应用外观
             CosmeticManager.checkUnlocks();
+            
+            // 初始化时间主题管理器（在检查解锁后，应用外观前）
+            TimeOfDayManager.init();
+            
+            // 应用外观（应用时间主题选择的背景）
             CosmeticManager.applyCosmetics();
+            
+            // 初始化环境事件管理器
+            AmbientEventsManager.init();
             
             // 检查转生按钮显示
             this.updatePrestigeButton();
@@ -3280,16 +4244,36 @@
             
             // 检查暴击（包含幸运星项链加成）
             let isCrit = false;
+            let isSuperCrit = false;
+            let critMultiplier = 1;
             const critChance = UpgradeCalculator.calculateTotalCritChance();
             
             if (Math.random() < critChance) {
                 isCrit = true;
-                const critMultiplier = GameState.upgrades.luckyFish.getCritMultiplier(
+                critMultiplier = GameState.upgrades.luckyFish.getCritMultiplier(
                     GameState.upgrades.luckyFish.level
                 );
+
+                // ==================== 超暴击判定 ====================
+                // 在已判定为暴击的前提下，如果倍率高于阈值并通过额外概率门，则标记为超暴击
+                if (
+                    critMultiplier >= GameConfig.SUPER_CRIT_THRESHOLD &&
+                    Math.random() < GameConfig.SUPER_CRIT_EXTRA_CHANCE
+                ) {
+                    isSuperCrit = true;
+                }
+                // ==================== 超暴击判定结束 ====================
+
                 baseGain = baseGain * critMultiplier;
-                SoundManager.playCritSound();
-                // 触发暴击表情
+
+                if (isSuperCrit) {
+                    SoundManager.playSuperCritSound();
+                    UIRenderer.triggerSuperCritFX();
+                } else {
+                    SoundManager.playCritSound();
+                }
+
+                // 触发暴击表情（超暴击同样触发）
                 CatExpressionManager.triggerCrit();
             } else {
                 SoundManager.playClickSound();
@@ -3302,7 +4286,7 @@
 
             // 在主屏成功钓到鱼时，更新鱼鱼图鉴数据
             // 使用当前选中的鱼图标ID作为鱼类型ID，与外观系统保持一致
-            FishCollection.recordCatch(GameState.cosmetics.selected.fishIcon, { isCrit });
+            FishCollection.recordCatch(GameState.cosmetics.selected.fishIcon, { isCrit, isSuperCrit });
 
             // 检查成就和外观解锁
             AchievementManager.checkAchievements();
@@ -3312,7 +4296,11 @@
             const clickX = (e.clientX || e.touches?.[0]?.clientX || rect.left + rect.width / 2);
             const clickY = (e.clientY || e.touches?.[0]?.clientY || rect.top + rect.height / 2);
 
-            UIRenderer.showFloatingText(actualGain, clickX, clickY, isCrit);
+            UIRenderer.showFloatingText(actualGain, clickX, clickY, {
+                isCrit,
+                isSuperCrit,
+                multiplier: critMultiplier
+            });
             UIRenderer.showFishCaughtAnimation(clickX, clickY);
 
             UIRenderer.updateFishCount(true);
@@ -3332,6 +4320,9 @@
 
             GameState.fish -= cost;
             upgrade.level++;
+
+            // 检查关键等级通知
+            KeyLevelNotification.check(upgradeKey, upgrade.level);
 
             // 更新全局倍率（如果是猫猫伙伴）
             if (upgradeKey === 'catCompanion') {
@@ -3618,8 +4609,16 @@
                             rodStyles: Array.from(GameState.cosmetics.unlocked.rodStyles),
                             fishIcons: Array.from(GameState.cosmetics.unlocked.fishIcons),
                             backgrounds: Array.from(GameState.cosmetics.unlocked.backgrounds)
-                        }
+                        },
+                        backgroundUserSelected: GameState.cosmetics.backgroundUserSelected || false
                     },
+                    currentTheme: GameState.currentTheme || 'neutral',
+                    ambientEvents: {
+                        enabled: GameState.ambientEvents.enabled !== false,
+                        lastEventTime: GameState.ambientEvents.lastEventTime || 0
+                    },
+                    // 关键等级通知：已展示过的里程碑
+                    seenKeyLevelMilestones: Array.from(GameState.seenKeyLevelMilestones),
                     // 鱼鱼图鉴存档数据
                     fishCollection: FishCollection.exportForSave(),
                     fishCollectionBonusMultiplier: GameState.fishCollectionBonusMultiplier,
@@ -3672,6 +4671,7 @@
                     GameState.unlockedAchievements = new Set(data.unlockedAchievements || []);
                     GameState.unlockedDpsMilestones = new Set(data.unlockedDpsMilestones || []);
                     GameState.muted = data.muted || false;
+                    GameState.seenKeyLevelMilestones = new Set(data.seenKeyLevelMilestones || []);
 
                     // 加载鱼鱼图鉴相关加成（向后兼容：若不存在则保持默认值）
                     if (typeof data.fishCollectionBonusMultiplier === 'number' && data.fishCollectionBonusMultiplier > 0) {
@@ -3703,6 +4703,25 @@
                             if (Array.isArray(data.cosmetics.unlocked.backgrounds)) {
                                 GameState.cosmetics.unlocked.backgrounds = new Set(data.cosmetics.unlocked.backgrounds);
                             }
+                        }
+                        // 加载背景用户选择状态
+                        if (typeof data.cosmetics.backgroundUserSelected === 'boolean') {
+                            GameState.cosmetics.backgroundUserSelected = data.cosmetics.backgroundUserSelected;
+                        }
+                    }
+                    
+                    // 加载主题状态
+                    if (data.currentTheme && ['day', 'night', 'neutral'].includes(data.currentTheme)) {
+                        GameState.currentTheme = data.currentTheme;
+                    }
+                    
+                    // 加载环境事件状态
+                    if (data.ambientEvents) {
+                        if (typeof data.ambientEvents.enabled === 'boolean') {
+                            GameState.ambientEvents.enabled = data.ambientEvents.enabled;
+                        }
+                        if (typeof data.ambientEvents.lastEventTime === 'number') {
+                            GameState.ambientEvents.lastEventTime = data.ambientEvents.lastEventTime;
                         }
                     }
 

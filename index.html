@@ -108,10 +108,14 @@
                     </div>
                 </div>
                 <div class="cat-hint">点击猫咪开始钓鱼吧！🐱</div>
+                <!-- 猫猫对话气泡容器 -->
+                <div id="cat-dialogue-container" class="cat-dialogue-container"></div>
             </div>
 
             <!-- 浮动文字容器 -->
             <div id="floating-texts" class="floating-texts"></div>
+            <!-- 超暴击全屏特效遮罩 -->
+            <div id="super-crit-overlay" class="super-crit-overlay"></div>
             <!-- 鱼图标动画容器 -->
             <div id="fish-animation-container" class="fish-animation-container"></div>
             <!-- 金色鱼事件容器 -->
@@ -234,6 +238,9 @@
         
         <!-- 提示气泡容器 -->
         <div id="tip-bubbles-container" class="tip-bubbles-container"></div>
+
+        <!-- 关键等级通知容器（底部中心大卡片） -->
+        <div id="key-level-notification-container" class="key-level-notification-container"></div>
     </div>
 
     <!-- SVG Icon Sprite -->
@@ -746,6 +753,86 @@
         <!-- 关闭图标 - 清晰的X符号 -->
         <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6L6 18M6 6l12 12"/>
+        </symbol>
+
+        <!-- ========== Ambient Creatures ==========
+             小动物（鱼 / 鸟）SVG 图标，用于屏幕上来回游动/飞行的氛围元素。
+             采用实心扁平卡通风格，fill 使用 currentColor，便于通过 CSS 控制颜色。 -->
+
+        <!-- 小圆鱼：身体较圆润，适合作为慢速、可爱的游动鱼 -->
+        <symbol id="icon-ambient-fish-1" viewBox="0 0 24 24" fill="none">
+            <!-- 身体 -->
+            <ellipse cx="12" cy="12" rx="7" ry="5" fill="currentColor"/>
+            <!-- 尾巴 -->
+            <path d="M5 12L2 9L2 15L5 12Z" fill="currentColor"/>
+            <!-- 背鳍 -->
+            <path d="M11 7L9.5 5.5L11.5 5.5L11 7Z" fill="currentColor" opacity="0.85"/>
+            <!-- 眼睛（白点 + 瞳孔） -->
+            <circle cx="14.5" cy="10.5" r="1.2" fill="#FFFFFF"/>
+            <circle cx="14.8" cy="10.3" r="0.5" fill="currentColor"/>
+            <!-- 简单斑点装饰 -->
+            <circle cx="10" cy="12" r="0.7" fill="#FFFFFF" opacity="0.35"/>
+        </symbol>
+
+        <!-- 小锦鲤：身体略细长，带一个优雅的分叉尾巴，适合作为优雅游动的鱼 -->
+        <symbol id="icon-ambient-fish-2" viewBox="0 0 24 24" fill="none">
+            <!-- 身体 -->
+            <ellipse cx="13" cy="12" rx="6" ry="4" fill="currentColor"/>
+            <!-- 分叉尾巴 -->
+            <path d="M6 12L2 9L3 12L2 15L6 12Z" fill="currentColor"/>
+            <!-- 背鳍 -->
+            <path d="M11 7.5L12.2 5.5L13.4 7.5Z" fill="#FFFFFF" opacity="0.4"/>
+            <!-- 腹鳍 -->
+            <path d="M11 16.5L12.3 14.8L13.6 16.5Z" fill="#FFFFFF" opacity="0.4"/>
+            <!-- 眼睛 -->
+            <circle cx="15.5" cy="10.5" r="1.1" fill="#FFFFFF"/>
+            <circle cx="15.8" cy="10.2" r="0.45" fill="currentColor"/>
+            <!-- 身体上的一块高光 -->
+            <path d="M10.5 11.2C11.4 10.6 12.4 10.4 13.4 10.6" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+        </symbol>
+
+        <!-- 小快鱼：身体更小更尖，适合作为高速掠过的小鱼 -->
+        <symbol id="icon-ambient-fish-3" viewBox="0 0 24 24" fill="none">
+            <!-- 身体（略扁的椭圆） -->
+            <ellipse cx="13" cy="12" rx="5" ry="3.2" fill="currentColor"/>
+            <!-- 锋利一点的尾巴 -->
+            <path d="M6.5 12L2.5 9.5L2.5 14.5L6.5 12Z" fill="currentColor"/>
+            <!-- 背鳍（稍微高一点，突出速度感） -->
+            <path d="M11 8L12 5.8L13 8Z" fill="currentColor" opacity="0.85"/>
+            <!-- 眼睛小一点，显得更“专注” -->
+            <circle cx="15.2" cy="10.8" r="0.9" fill="#FFFFFF"/>
+            <circle cx="15.5" cy="10.6" r="0.4" fill="currentColor"/>
+        </symbol>
+
+        <!-- 小胖鸟：圆滚滚的身体，张开翅膀，可爱、慢速飞行 -->
+        <symbol id="icon-ambient-bird-1" viewBox="0 0 24 24" fill="none">
+            <!-- 身体 -->
+            <circle cx="12" cy="13" r="5" fill="currentColor"/>
+            <!-- 翅膀（左） -->
+            <path d="M8 12C6.5 11.5 5.2 11.2 4 11.4C4.6 12.4 5.4 13.2 6.4 13.8L8 14.5Z" fill="#FFFFFF" opacity="0.4"/>
+            <!-- 翅膀（右） -->
+            <path d="M16 12C17.5 11.5 18.8 11.2 20 11.4C19.4 12.4 18.6 13.2 17.6 13.8L16 14.5Z" fill="#FFFFFF" opacity="0.4"/>
+            <!-- 头部高光 -->
+            <circle cx="10.2" cy="11" r="1.6" fill="#FFFFFF" opacity="0.35"/>
+            <!-- 眼睛 -->
+            <circle cx="13.5" cy="11.5" r="0.9" fill="#FFFFFF"/>
+            <circle cx="13.8" cy="11.3" r="0.35" fill="currentColor"/>
+            <!-- 嘴巴 -->
+            <path d="M14.8 12.3L16.2 12.8L14.8 13.3Z" fill="#FFC64B"/>
+        </symbol>
+
+        <!-- 小海鸥 / 轻盈飞行鸟：细长身体，展开的翅膀轮廓清晰 -->
+        <symbol id="icon-ambient-bird-2" viewBox="0 0 24 24" fill="none">
+            <!-- 身体（略椭圆） -->
+            <ellipse cx="12" cy="13" rx="3.2" ry="2.2" fill="currentColor"/>
+            <!-- 左翼：从身体向外展开的弧形 -->
+            <path d="M9 12.5C7 11.5 5.2 10.9 3.3 11C4.1 12.1 5.3 13 6.8 13.6L9 14.3Z" fill="currentColor"/>
+            <!-- 右翼 -->
+            <path d="M15 12.5C17 11.5 18.8 10.9 20.7 11C19.9 12.1 18.7 13 17.2 13.6L15 14.3Z" fill="currentColor"/>
+            <!-- 眼睛 -->
+            <circle cx="13.2" cy="12.2" r="0.5" fill="#FFFFFF"/>
+            <!-- 嘴巴（更尖一点） -->
+            <path d="M14.2 12.6L15.7 13L14.2 13.4Z" fill="#FFC64B"/>
         </symbol>
     </svg>
 

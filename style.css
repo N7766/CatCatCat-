@@ -1015,6 +1015,29 @@ body {
     z-index: 1000;
 }
 
+/* 普通暴击浮动文字：在基础样式上稍微放大并使用暖色调 */
+.floating-text--crit {
+    color: #FF6B6B;
+    font-size: 28px;
+    text-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        0 0 14px rgba(255, 107, 107, 0.7);
+}
+
+/* 超暴击浮动文字：更大、更亮、带轻微缩放爆炸感 */
+.floating-text--super-crit {
+    font-size: 32px;
+    background: linear-gradient(120deg, #FF9A9E, #FAD961, #F76B1C);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.9),
+        0 0 20px rgba(255, 154, 158, 0.8),
+        0 0 28px rgba(250, 217, 97, 0.9);
+    animation: floatUpSuperCrit 0.9s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+
 @keyframes floatUp {
     0% {
         opacity: 1;
@@ -1030,6 +1053,22 @@ body {
     }
 }
 
+/* 超暴击：更快的初速、短促的爆炸感 */
+@keyframes floatUpSuperCrit {
+    0% {
+        opacity: 1;
+        transform: translateY(0) translateX(-50%) scale(0.6);
+    }
+    35% {
+        opacity: 1;
+        transform: translateY(-35px) translateX(-50%) scale(1.3);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-110px) translateX(-50%) scale(1.6);
+    }
+}
+
 /* 鱼图标动画容器 - 用于显示被拉出的鱼 */
 .fish-animation-container {
     position: absolute;
@@ -1040,6 +1079,59 @@ body {
     pointer-events: none;
     overflow: hidden;
     z-index: 999;
+}
+
+/* 超暴击全屏柔和闪光遮罩 */
+.super-crit-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.9);
+    background:
+        radial-gradient(circle at center,
+            rgba(255, 255, 255, 0.65) 0%,
+            rgba(255, 200, 150, 0.4) 30%,
+            rgba(255, 140, 180, 0.2) 55%,
+            transparent 75%);
+    mix-blend-mode: screen;
+    z-index: 998;
+}
+
+.super-crit-overlay--active {
+    animation: superCritFlash 320ms ease-out forwards;
+}
+
+@keyframes superCritFlash {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.08);
+    }
+}
+
+/* 主场景轻微缩放脉冲，配合超暴击遮罩形成“镜头微抖动”感 */
+.main-content.super-crit-pulse {
+    animation: superCritPulse 220ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+@keyframes superCritPulse {
+    0% {
+        transform: scale(1);
+    }
+    20% {
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* 被拉出的鱼图标 - 沿弧线路径移动并淡出 */
@@ -3773,6 +3865,183 @@ body {
     }
 }
 
+/* ========== 关键等级通知卡片 ========== */
+.key-level-notification-container {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1100; /* 高于普通提示和商店 */
+    pointer-events: none;
+    max-width: 520px;
+    width: 90%;
+    display: flex;
+    justify-content: center;
+}
+
+.key-level-notification-card {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 245, 230, 0.98) 50%, rgba(255, 233, 248, 0.98) 100%);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.18),
+        0 0 32px rgba(255, 215, 0, 0.35),
+        0 0 40px rgba(255, 182, 193, 0.25);
+    border: 2px solid rgba(255, 215, 0, 0.7);
+    color: var(--color-text);
+    opacity: 0;
+    transform: translateY(40px);
+    animation: key-level-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+.key-level-notification-card--leaving {
+    animation: key-level-slide-out 0.45s ease forwards;
+}
+
+.key-level-notification-icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    color: var(--color-accent-gold);
+    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+}
+
+.key-level-notification-content {
+    flex: 1;
+}
+
+.key-level-notification-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 2px;
+}
+
+.key-level-notification-title-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 215, 0, 0.18);
+    border: 1px solid rgba(255, 215, 0, 0.6);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent-gold);
+}
+
+.key-level-notification-text {
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.key-level-notification-close {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 4px;
+    margin-left: var(--spacing-xs);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 0, 0, 0.35);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.key-level-notification-close:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.55);
+    transform: scale(1.05);
+}
+
+.key-level-notification-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.key-level-notification-card::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.85), transparent 55%),
+                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.6), transparent 55%);
+    opacity: 0.85;
+    mix-blend-mode: screen;
+    pointer-events: none;
+}
+
+.key-level-notification-card::after {
+    content: '';
+    position: absolute;
+    top: -60%;
+    left: -20%;
+    width: 160%;
+    height: 220%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    opacity: 0.8;
+    transform: translateX(-100%);
+    animation: key-level-shimmer 4s infinite;
+    pointer-events: none;
+}
+
+@keyframes key-level-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes key-level-slide-out {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+}
+
+@keyframes key-level-shimmer {
+    0% {
+        transform: translateX(-120%);
+    }
+    60% {
+        transform: translateX(120%);
+    }
+    100% {
+        transform: translateX(120%);
+    }
+}
+
+@media (max-width: 768px) {
+    .key-level-notification-container {
+        bottom: 16px;
+        max-width: calc(100% - 16px);
+    }
+
+    .key-level-notification-card {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: var(--font-size-sm);
+    }
+
+    .key-level-notification-icon {
+        width: 24px;
+        height: 24px;
+    }
+}
+
 /* DPS里程碑气泡 - 重新设计为圆角药丸形状 */
 .milestone-bubble {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 182, 193, 0.95) 100%);
@@ -3949,65 +4218,118 @@ body {
     }
 }
 
-/* 小动物元素 - 偶尔经过的小动物 */
-.ambient-animal {
+/* ========== Ambient Creatures - 氛围小动物（鱼 / 鸟） ==========
+ * 使用 SVG 图标 + 固定定位，在背景和主 UI 之间轻轻游动/飞行。
+ * 仅做装饰，不参与点击交互。 */
+.ambient-creature {
     position: fixed;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 100;
-    will-change: transform, opacity;
-    font-size: 24px;
-    animation: animalMove var(--duration, 4000ms) linear forwards;
+    pointer-events: none; /* 不阻挡玩家点击猫咪或 UI */
+    z-index: 200;        /* 高于背景（0/1），低于猫和面板（10+） */
     top: var(--start-y, 50%);
+    will-change: transform, opacity;
+    animation: animalMove var(--duration, 4000ms) linear forwards;
+    opacity: 0;
 }
 
-/* 小鸟动画 */
-.ambient-animal--bird {
-    font-size: 20px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+/* 通用图标样式 */
+.ambient-creature__icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+    color: #40E0D0; /* 默认海水蓝，可被变体类覆盖 */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+    will-change: transform;
 }
 
-.ambient-animal--bird::before {
-    content: '🐦';
+/* 鱼类基础样式 */
+.ambient-creature--fish .ambient-creature__icon {
+    animation: ambientFishWiggle 1.6s ease-in-out infinite;
 }
 
-/* 小鱼动画 */
-.ambient-animal--fish {
-    font-size: 18px;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+/* 三种鱼的颜色变体（柔和的海洋配色） */
+.ambient-creature--fish-1 .ambient-creature__icon {
+    color: #40E0D0; /* 经典青绿小鱼 */
 }
 
-.ambient-animal--fish::before {
-    content: '🐠';
+.ambient-creature--fish-2 .ambient-creature__icon {
+    color: #FFB347; /* 暖橙锦鲤 */
 }
 
+.ambient-creature--fish-3 .ambient-creature__icon {
+    color: #5DADE2; /* 柔和海蓝快鱼 */
+}
+
+/* 鸟类基础样式 */
+.ambient-creature--bird .ambient-creature__icon {
+    color: #FDFDFE; /* 接近白色的鸟，在深浅背景上都清晰 */
+    animation: ambientBirdFlap 1.8s ease-in-out infinite;
+}
+
+/* 两种鸟的轻微配色差异 */
+.ambient-creature--bird-1 .ambient-creature__icon {
+    /* 小胖鸟略带一点暖灰 */
+    color: #F5F5F8;
+}
+
+.ambient-creature--bird-2 .ambient-creature__icon {
+    /* 小海鸥带点冷灰蓝，适合海天背景 */
+    color: #E2E9F3;
+}
+
+/* 水平移动主动画：由 JS 控制起点/方向，只操作 transform/opacity */
 @keyframes animalMove {
     0% {
-        left: calc(var(--direction, 1) * -50px);
-        transform: translateY(0) scale(0.8);
+        transform: translateX(0) translateY(0);
         opacity: 0;
     }
     10% {
         opacity: 1;
     }
-    50% {
-        transform: translateY(-20px) scale(1);
-    }
     90% {
         opacity: 1;
     }
     100% {
-        left: calc(100% + 50px);
-        transform: translateY(0) scale(0.8);
+        transform: translateX(calc(var(--direction, 1) * 120vw)) translateY(0);
         opacity: 0;
     }
 }
 
-/* 小动物悬停效果 */
-.ambient-animal:hover {
-    transform: scale(1.3) !important;
-    filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.6));
-    transition: transform 0.2s ease, filter 0.2s ease;
+/* 鱼：轻微上下波动 + 尾巴摇动感（通过整体旋转模拟） */
+@keyframes ambientFishWiggle {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-2px) rotate(-4deg);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg);
+    }
+    75% {
+        transform: translateY(2px) rotate(4deg);
+    }
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+}
+
+/* 鸟：轻微的上下 bob + 展翅/收拢感（通过缩放 Y 方向模拟） */
+@keyframes ambientBirdFlap {
+    0% {
+        transform: translateY(0) scaleY(1);
+    }
+    25% {
+        transform: translateY(-3px) scaleY(1.05);
+    }
+    50% {
+        transform: translateY(0) scaleY(1);
+    }
+    75% {
+        transform: translateY(3px) scaleY(0.96);
+    }
+    100% {
+        transform: translateY(0) scaleY(1);
+    }
 }
 
 /* 响应式：移动端外观面板 */
@@ -4107,6 +4429,355 @@ body {
     .milestone-bubble {
         font-size: var(--font-size-base);
         padding: var(--spacing-sm) var(--spacing-md);
+    }
+}
+
+/* ========== 环境事件系统样式 ========== */
+
+/* 环境事件容器 - 位于背景层上方，但低于主UI */
+.ambient-events-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2; /* 在背景层（0/1）上方，但低于猫咪和UI（10+） */
+    overflow: hidden;
+}
+
+/* 极光事件视觉效果 */
+.ambient-event-aurora {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(0, 255, 255, 0.15) 20%,
+        rgba(138, 43, 226, 0.25) 40%,
+        rgba(0, 255, 255, 0.15) 60%,
+        transparent 80%
+    );
+    animation: auroraEventFlow 5s ease-in-out;
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes auroraEventFlow {
+    0% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    20% {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+    80% {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* 流星事件视觉效果 */
+.ambient-event-shooting-star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #FFFFFF, transparent);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.8),
+        0 0 20px rgba(255, 255, 255, 0.6),
+        0 0 40px rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    opacity: 1;
+}
+
+/* 流星拖尾效果 */
+.ambient-event-shooting-star::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
+    transform: translateY(-50%);
+    transform-origin: left center;
+}
+
+/* ========== 主题相关样式调整 ==========
+ * 根据当前主题（day/night/neutral）调整粒子颜色
+ */
+
+/* 早晨主题（day）- 暖色光点 */
+body[data-theme="day"] .ambient-bubble {
+    background: radial-gradient(circle, rgba(255, 200, 100, 0.2) 0%, rgba(255, 182, 193, 0.15) 100%);
+    border-color: rgba(255, 200, 100, 0.3);
+}
+
+body[data-theme="day"] .ambient-blob {
+    background: radial-gradient(ellipse, rgba(255, 200, 100, 0.15) 0%, rgba(255, 182, 193, 0.1) 100%);
+}
+
+/* 夜晚主题（night）- 冷色光点 */
+body[data-theme="night"] .ambient-bubble {
+    background: radial-gradient(circle, rgba(100, 150, 255, 0.2) 0%, rgba(138, 43, 226, 0.15) 100%);
+    border-color: rgba(100, 150, 255, 0.3);
+}
+
+body[data-theme="night"] .ambient-blob {
+    background: radial-gradient(ellipse, rgba(100, 150, 255, 0.15) 0%, rgba(138, 43, 226, 0.1) 100%);
+}
+
+/* ========== 猫猫对话气泡系统 ==========
+ * 独立的云朵风格对话气泡系统，显示在猫猫附近
+ * 区别于现有的提示气泡系统（tip-bubbles）
+ */
+.cat-dialogue-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20px;
+}
+
+/* 猫猫对话气泡 - 云朵风格 */
+.cat-dialogue-bubble {
+    position: absolute;
+    max-width: 200px;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.98) 0%, 
+        rgba(255, 240, 245, 0.98) 50%,
+        rgba(255, 228, 232, 0.98) 100%);
+    border-radius: 24px 24px 24px 8px; /* 云朵形状的不规则圆角 */
+    box-shadow: 
+        0 4px 16px rgba(255, 182, 193, 0.3),
+        0 0 30px rgba(255, 182, 193, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 182, 193, 0.4);
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    line-height: 1.5;
+    text-align: center;
+    word-wrap: break-word;
+    pointer-events: auto;
+    opacity: 0;
+    transform: scale(0.8) translateY(-10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    will-change: transform, opacity;
+    backdrop-filter: blur(8px);
+    /* 云朵装饰：使用伪元素创建不规则形状 */
+    position: relative;
+}
+
+/* 对话气泡左侧位置（在猫猫左边） */
+.cat-dialogue-bubble--left {
+    top: 30%;
+    left: -180px; /* 猫猫左侧 */
+    transform-origin: right center;
+}
+
+/* 对话气泡右侧位置（在猫猫右边） */
+.cat-dialogue-bubble--right {
+    top: 30%;
+    right: -180px; /* 猫猫右侧 */
+    transform-origin: left center;
+    border-radius: 24px 24px 8px 24px; /* 右侧气泡右侧圆角较小 */
+}
+
+/* 对话气泡上方位置 */
+.cat-dialogue-bubble--top {
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: center bottom;
+}
+
+/* 摇摆动画 - 轻微的呼吸/摆动效果
+ * 注意：这个动画只影响气泡本身的轻微摇摆，不影响定位transform
+ * 定位transform在.show类中单独设置
+ */
+@keyframes catDialogueWobble {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+    }
+    25% {
+        transform: scale(1.015) rotate(1deg);
+    }
+    50% {
+        transform: scale(1) rotate(0deg);
+    }
+    75% {
+        transform: scale(1.015) rotate(-1deg);
+    }
+}
+
+/* 对话气泡显示状态 */
+.cat-dialogue-bubble.show {
+    opacity: 1;
+    animation: catDialogueWobble 3s ease-in-out infinite;
+}
+
+.cat-dialogue-bubble--left.show {
+    transform: scale(1) translateY(0);
+    animation: catDialogueWobble 3s ease-in-out infinite;
+}
+
+.cat-dialogue-bubble--right.show {
+    transform: scale(1) translateY(0);
+    animation: catDialogueWobble 3s ease-in-out infinite;
+}
+
+.cat-dialogue-bubble--top.show {
+    transform: translateX(-50%) scale(1) translateY(0);
+    animation: catDialogueWobble 3s ease-in-out infinite;
+}
+
+/* 对话气泡淡出状态 */
+.cat-dialogue-bubble.hide {
+    opacity: 0;
+    transform: scale(0.8) translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation: none; /* 淡出时停止摇摆动画 */
+}
+
+.cat-dialogue-bubble--left.hide {
+    transform: scale(0.8) translateX(-10px) translateY(-10px);
+    animation: none;
+}
+
+.cat-dialogue-bubble--right.hide {
+    transform: scale(0.8) translateX(10px) translateY(-10px);
+    animation: none;
+}
+
+.cat-dialogue-bubble--top.hide {
+    transform: translateX(-50%) scale(0.8) translateY(10px);
+    animation: none;
+}
+
+/* 悬停效果 - 桌面端 */
+@media (hover: hover) {
+    .cat-dialogue-bubble:hover {
+        transform: scale(1.05) translateY(-3px);
+        box-shadow: 
+            0 6px 20px rgba(255, 182, 193, 0.4),
+            0 0 40px rgba(255, 182, 193, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
+        filter: brightness(1.05);
+        animation: none; /* 悬停时暂停摇摆动画 */
+    }
+    
+    .cat-dialogue-bubble--left:hover {
+        transform: scale(1.05) translateX(-5px) translateY(-3px);
+    }
+    
+    .cat-dialogue-bubble--right:hover {
+        transform: scale(1.05) translateX(5px) translateY(-3px);
+    }
+    
+    .cat-dialogue-bubble--top:hover {
+        transform: translateX(-50%) scale(1.05) translateY(-8px);
+    }
+}
+
+/* 对话气泡内容 */
+.cat-dialogue-bubble-text {
+    display: block;
+    position: relative;
+    z-index: 1;
+}
+
+/* 云朵装饰小气泡（使用伪元素） */
+.cat-dialogue-bubble::before {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, 
+        rgba(255, 240, 245, 0.9) 0%, 
+        rgba(255, 228, 232, 0.9) 100%);
+    border-radius: 50%;
+    top: -15px;
+    left: 20px;
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 182, 193, 0.2);
+}
+
+.cat-dialogue-bubble::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, 
+        rgba(255, 240, 245, 0.9) 0%, 
+        rgba(255, 228, 232, 0.9) 100%);
+    border-radius: 50%;
+    top: -10px;
+    right: 30px;
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    box-shadow: 0 2px 6px rgba(255, 182, 193, 0.2);
+}
+
+/* 右侧气泡的小气泡装饰位置调整 */
+.cat-dialogue-bubble--right::before {
+    left: auto;
+    right: 20px;
+}
+
+.cat-dialogue-bubble--right::after {
+    left: 30px;
+    right: auto;
+}
+
+/* 上方气泡的小气泡装饰位置调整 */
+.cat-dialogue-bubble--top::before {
+    top: auto;
+    bottom: -15px;
+    left: 30%;
+}
+
+.cat-dialogue-bubble--top::after {
+    top: auto;
+    bottom: -10px;
+    right: 30%;
+    left: auto;
+}
+
+/* 响应式：移动端调整 */
+@media (max-width: 768px) {
+    .cat-dialogue-bubble {
+        max-width: 140px;
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .cat-dialogue-bubble--left {
+        left: -130px; /* 移动端使用较小的距离 */
+    }
+    
+    .cat-dialogue-bubble--right {
+        right: -130px; /* 移动端使用较小的距离 */
+    }
+    
+    .cat-dialogue-bubble--top {
+        top: -60px;
     }
 }
 
