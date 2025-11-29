@@ -24,7 +24,10 @@
         CRIT_MAX_MULTIPLIER: 5.0,          // 最大暴击倍率（5x）
         
         // 里程碑配置
-        MILESTONES: [100, 1000, 10000, 100000, 1000000]
+        MILESTONES: [100, 1000, 10000, 100000, 1000000],
+        
+        // DPS里程碑配置（每秒鱼数阈值）
+        DPS_MILESTONES: [10, 50, 100, 250, 500, 1000]
     };
 
     // ==================== 游戏状态管理 ====================
@@ -34,17 +37,35 @@
         fishPerClick: 1,            // 基础每次点击获得的鱼鱼
         prestigeLevel: 0,           // 转生等级
         prestigeBonus: 0,           // 转生永久加成（倍数，如0.1表示+10%）
+        seaStars: 0,                // 海星货币（转生获得）
         globalMultiplier: 1.0,      // 全局倍率（来自猫猫伙伴）
         unlockedAchievements: new Set(),  // 已解锁的成就
+        unlockedDpsMilestones: new Set(), // 已触发的DPS里程碑
+        
+        // 外观系统状态
+        cosmetics: {
+            selected: {
+                catColor: 'pink',      // 默认粉色
+                rodStyle: 'default',   // 默认鱼竿
+                fishIcon: 'default',   // 默认鱼图标
+                background: 'day'      // 默认白天背景
+            },
+            unlocked: {
+                catColors: new Set(['pink']),
+                rodStyles: new Set(['default']),
+                fishIcons: new Set(['default']),
+                backgrounds: new Set(['day'])
+            }
+        },
         
         upgrades: {
             // 强化鱼竿：增加每次点击的基础值
             clickPower: {
                 level: 0,
                 baseCost: 10,
-                name: '🎣 强化鱼竿',
+                name: '强化鱼竿',
                 description: '提升每次点击的基础收益',
-                icon: '🎣',
+                iconId: 'icon-rod',
                 // 成本公式：基础成本 * (1.5 ^ 等级)
                 getCost: function(level) {
                     return Math.floor(this.baseCost * Math.pow(GameConfig.COST_BASE_MULTIPLIER, level));
@@ -59,9 +80,9 @@
             autoFishing: {
                 level: 0,
                 baseCost: 50,
-                name: '🤖 自动钓鱼助手',
+                name: '自动钓鱼助手',
                 description: '每秒自动获得鱼鱼',
-                icon: '🤖',
+                iconId: 'icon-bot',
                 interval: 1000,  // 自动钓鱼间隔（毫秒）
                 // 成本公式：基础成本 * (1.5 ^ 等级)
                 getCost: function(level) {
@@ -77,9 +98,9 @@
             luckyFish: {
                 level: 0,
                 baseCost: 100,
-                name: '🍀 幸运小鱼干',
+                name: '幸运小鱼干',
                 description: '增加暴击概率和伤害倍率',
-                icon: '🍀',
+                iconId: 'icon-clover',
                 // 成本公式：基础成本 * (1.5 ^ 等级)
                 getCost: function(level) {
                     return Math.floor(this.baseCost * Math.pow(GameConfig.COST_BASE_MULTIPLIER, level));
@@ -102,9 +123,9 @@
             catCompanion: {
                 level: 0,
                 baseCost: 500,
-                name: '🐱 猫猫伙伴',
+                name: '猫猫伙伴',
                 description: '全局收益倍率加成',
-                icon: '🐱',
+                iconId: 'icon-bot', // 使用机器人图标
                 // 成本公式：基础成本 * (1.5 ^ 等级) - 更昂贵
                 getCost: function(level) {
                     return Math.floor(this.baseCost * Math.pow(GameConfig.COST_BASE_MULTIPLIER, level));
@@ -138,7 +159,19 @@
         achievementsBtn: document.getElementById('achievements-btn'),
         achievementsPanel: document.getElementById('achievements-panel'),
         achievementsList: document.getElementById('achievements-list'),
-        closeAchievements: document.getElementById('close-achievements')
+        closeAchievements: document.getElementById('close-achievements'),
+        cosmeticsBtn: document.getElementById('cosmetics-btn'),
+        cosmeticsPanel: document.getElementById('cosmetics-panel'),
+        cosmeticsList: document.getElementById('cosmetics-list'),
+        closeCosmetics: document.getElementById('close-cosmetics'),
+        prestigeModal: document.getElementById('prestige-modal'),
+        prestigeModalStars: document.getElementById('prestige-modal-stars'),
+        prestigeConfirm: document.getElementById('prestige-confirm'),
+        prestigeCancel: document.getElementById('prestige-cancel'),
+        seaStars: document.getElementById('sea-stars'),
+        seaStarsItem: document.getElementById('sea-stars-item'),
+        milestoneBubbles: document.getElementById('milestone-bubbles'),
+        body: document.body
     };
 
     // ==================== 升级成本计算公式 ====================
@@ -278,12 +311,21 @@
         updateFishPerSecond() {
             const actualValue = UpgradeCalculator.calculateActualPerSecond();
             elements.fishPerSecond.textContent = actualValue.toFixed(1);
+            // 检查DPS里程碑
+            MilestoneManager.checkMilestones(actualValue);
         },
         
         updatePrestigeBonus() {
             if (GameState.prestigeLevel > 0) {
                 elements.prestigeBonusItem.style.display = 'flex';
                 elements.prestigeBonus.textContent = `+${(GameState.prestigeBonus * 100).toFixed(1)}%`;
+            }
+        },
+        
+        updateSeaStars() {
+            if (GameState.seaStars > 0) {
+                elements.seaStarsItem.style.display = 'flex';
+                elements.seaStars.textContent = GameState.seaStars.toLocaleString();
             }
         },
 
@@ -319,7 +361,7 @@
         showFishCaughtAnimation(x, y) {
             const fishIcon = document.createElement('div');
             fishIcon.className = 'fish-caught';
-            fishIcon.textContent = '🐟';
+            fishIcon.innerHTML = '<svg class="icon icon--fish-animation"><use href="#icon-fish"></use></svg>';
             
             const mainRect = elements.cat.closest('.main-content').getBoundingClientRect();
             const hookRect = elements.rodHook.getBoundingClientRect();
@@ -379,11 +421,17 @@
                     nextEffectText = `下一级: 全局倍率 ${currentMultiplier.toFixed(1)}x → ${nextMultiplier.toFixed(1)}x`;
                 }
                 
+                const iconHtml = upgrade.iconId 
+                    ? `<svg class="icon icon--upgrade"><use href="#${upgrade.iconId}"></use></svg>`
+                    : '';
                 upgradeItem.innerHTML = `
-                    <div class="upgrade-name">${upgrade.icon} ${upgrade.name}</div>
+                    <div class="upgrade-name">${iconHtml} ${upgrade.name}</div>
                     <div class="upgrade-description">${upgrade.description}</div>
                     <div class="upgrade-next-effect">${nextEffectText}</div>
-                    <div class="upgrade-cost">💰 ${Math.floor(cost).toLocaleString()} 鱼鱼</div>
+                    <div class="upgrade-cost">
+                        <svg class="icon icon--small"><use href="#icon-coin"></use></svg>
+                        ${Math.floor(cost).toLocaleString()} 鱼鱼
+                    </div>
                     <div class="upgrade-level">当前等级: ${currentLevel}</div>
                 `;
 
@@ -408,8 +456,11 @@
                 const isUnlocked = GameState.unlockedAchievements.has(milestone);
                 achievementItem.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
                 
+                const achievementIconId = isUnlocked ? 'icon-trophy' : 'icon-lock';
                 achievementItem.innerHTML = `
-                    <div class="achievement-icon">${isUnlocked ? '🏆' : '🔒'}</div>
+                    <div class="achievement-icon">
+                        <svg class="icon icon--achievement"><use href="#${achievementIconId}"></use></svg>
+                    </div>
                     <div class="achievement-content">
                         <div class="achievement-name">获得 ${milestone.toLocaleString()} 条鱼</div>
                         <div class="achievement-description">
@@ -423,8 +474,389 @@
         },
 
         updateMuteButton() {
-            elements.muteBtn.textContent = GameState.muted ? '🔇' : '🔊';
+            const iconId = GameState.muted ? 'icon-mute' : 'icon-volume';
+            elements.muteBtn.innerHTML = `<svg class="icon icon--mute"><use href="#${iconId}"></use></svg>`;
             elements.muteBtn.classList.toggle('muted', GameState.muted);
+        }
+    };
+
+    // ==================== 外观系统定义 ====================
+    /**
+     * 外观系统数据结构说明:
+     * - catColors: 猫咪颜色选项 (id, name, color十六进制值, requirement解锁条件)
+     * - rodStyles: 鱼竿样式选项 (id, name, requirement解锁条件)
+     * - fishIcons: 鱼类图标选项 (id, name, icon表情符号, requirement解锁条件)
+     * - backgrounds: 背景样式选项 (id, name, gradient渐变CSS, requirement解锁条件)
+     * 
+     * 所有名称在各自类别内都是唯一的，确保用户可以清楚区分每个选项
+     */
+    const CosmeticDefinitions = {
+        catColors: [
+            { id: 'pink', name: '粉红猫', color: '#FFB6C1', requirement: { type: 'default' } },
+            { id: 'blue', name: '蓝色猫', color: '#87CEEB', requirement: { type: 'totalFish', value: 2000 } },
+            { id: 'orange', name: '橙色猫', color: '#FFA500', requirement: { type: 'totalFish', value: 8000 } },
+            { id: 'purple', name: '紫色猫', color: '#DA70D6', requirement: { type: 'achievement', value: 10000 } }
+        ],
+        rodStyles: [
+            { id: 'default', name: '基础原木鱼竿', requirement: { type: 'default' } },
+            { id: 'golden', name: '闪耀金鱼竿', requirement: { type: 'upgradeLevel', upgrade: 'clickPower', value: 10 } },
+            { id: 'bamboo', name: '翠绿竹鱼竿', requirement: { type: 'upgradeLevel', upgrade: 'autoFishing', value: 8 } },
+            { id: 'crystal', name: '水晶透明鱼竿', requirement: { type: 'seaStars', value: 3 } }
+        ],
+        fishIcons: [
+            { id: 'default', name: '经典小鲤鱼', icon: '🐟', requirement: { type: 'default' } },
+            { id: 'koi', name: '幸运锦鲤', icon: '🐠', requirement: { type: 'totalFish', value: 6000 } },
+            { id: 'puffer', name: '可爱河豚', icon: '🐡', requirement: { type: 'upgradeLevel', upgrade: 'luckyFish', value: 5 } },
+            { id: 'shark', name: '凶猛小鲨鱼', icon: '🦈', requirement: { type: 'dpsMilestone', value: 100 } }
+        ],
+        backgrounds: [
+            { id: 'day', name: '柔和晨光', gradient: 'linear-gradient(135deg, #FFF5EE 0%, #E0F2F5 50%, #B0E0E6 100%)', requirement: { type: 'default' } },
+            { id: 'sunset', name: '绚丽晚霞', gradient: 'linear-gradient(135deg, #FFE4B5 0%, #FFB6C1 50%, #FF8C69 100%)', requirement: { type: 'totalFish', value: 15000 } },
+            { id: 'night', name: '神秘星空', gradient: 'linear-gradient(135deg, #191970 0%, #4B0082 50%, #000000 100%)', requirement: { type: 'upgradeLevel', upgrade: 'clickPower', value: 20 } },
+            { id: 'ocean', name: '深邃海洋', gradient: 'linear-gradient(135deg, #001F3F 0%, #0074D9 50%, #7FDBFF 100%)', requirement: { type: 'seaStars', value: 5 } }
+        ]
+    };
+
+    // ==================== 外观管理器 ====================
+    /**
+     * 外观管理器说明:
+     * 
+     * 数据结构存储位置:
+     * - GameState.cosmetics.selected: 当前选中的外观项
+     *   { catColor, rodStyle, fishIcon, background }
+     * - GameState.cosmetics.unlocked: 已解锁的外观项集合
+     *   { catColors: Set, rodStyles: Set, fishIcons: Set, backgrounds: Set }
+     * 
+     * 选择状态更新流程:
+     * 1. 用户点击外观卡片 (createCosmeticSection中绑定点击事件)
+     * 2. 调用 select(category, id) 方法
+     * 3. 更新 GameState.cosmetics.selected 中的对应字段
+     * 4. 立即更新DOM中所有卡片的selected类 (实时反馈,无需关闭面板)
+     * 5. 调用 applyCosmetics() 应用外观到游戏界面
+     * 6. 保存到 localStorage
+     * 
+     * DOM更新机制:
+     * - 每个卡片都有 data-category 和 data-id 属性
+     * - select() 方法通过 querySelector 找到对应卡片
+     * - 移除同一类别下所有卡片的 selected 类
+     * - 为当前选中的卡片添加 selected 类
+     */
+    const CosmeticManager = {
+        /**
+         * 检查解锁条件是否满足
+         */
+        checkRequirement(requirement) {
+            if (requirement.type === 'default') return true;
+            if (requirement.type === 'totalFish') {
+                return GameState.totalFishEarned >= requirement.value;
+            }
+            if (requirement.type === 'upgradeLevel') {
+                return GameState.upgrades[requirement.upgrade].level >= requirement.value;
+            }
+            if (requirement.type === 'achievement') {
+                return GameState.unlockedAchievements.has(requirement.value);
+            }
+            if (requirement.type === 'seaStars') {
+                return GameState.seaStars >= requirement.value;
+            }
+            if (requirement.type === 'dpsMilestone') {
+                return GameState.unlockedDpsMilestones.has(requirement.value);
+            }
+            return false;
+        },
+
+        /**
+         * 检查并解锁新外观
+         */
+        checkUnlocks() {
+            let unlockedSomething = false;
+            
+            // 检查猫咪颜色
+            CosmeticDefinitions.catColors.forEach(cat => {
+                if (!GameState.cosmetics.unlocked.catColors.has(cat.id) && this.checkRequirement(cat.requirement)) {
+                    GameState.cosmetics.unlocked.catColors.add(cat.id);
+                    unlockedSomething = true;
+                }
+            });
+            
+            // 检查鱼竿样式
+            CosmeticDefinitions.rodStyles.forEach(rod => {
+                if (!GameState.cosmetics.unlocked.rodStyles.has(rod.id) && this.checkRequirement(rod.requirement)) {
+                    GameState.cosmetics.unlocked.rodStyles.add(rod.id);
+                    unlockedSomething = true;
+                }
+            });
+            
+            // 检查鱼图标
+            CosmeticDefinitions.fishIcons.forEach(fish => {
+                if (!GameState.cosmetics.unlocked.fishIcons.has(fish.id) && this.checkRequirement(fish.requirement)) {
+                    GameState.cosmetics.unlocked.fishIcons.add(fish.id);
+                    unlockedSomething = true;
+                }
+            });
+            
+            // 检查背景
+            CosmeticDefinitions.backgrounds.forEach(bg => {
+                if (!GameState.cosmetics.unlocked.backgrounds.has(bg.id) && this.checkRequirement(bg.requirement)) {
+                    GameState.cosmetics.unlocked.backgrounds.add(bg.id);
+                    unlockedSomething = true;
+                }
+            });
+            
+            if (unlockedSomething) {
+                this.applyCosmetics();
+                if (elements.cosmeticsPanel.style.display !== 'none') {
+                    this.renderPanel();
+                }
+            }
+        },
+
+        /**
+         * 应用选中的外观
+         */
+        applyCosmetics() {
+            const { catColor, rodStyle, fishIcon, background } = GameState.cosmetics.selected;
+            
+            // 应用猫咪颜色
+            elements.cat.className = 'cat';
+            elements.cat.classList.add(`cat-${catColor}`);
+            
+            // 应用鱼竿样式
+            elements.fishingRod.className = 'fishing-rod';
+            elements.fishingRod.classList.add(`rod-${rodStyle}`);
+            
+            // 应用鱼图标 - 使用SVG图标
+            const fishDef = CosmeticDefinitions.fishIcons.find(f => f.id === fishIcon);
+            if (fishDef) {
+                // 根据鱼类型选择对应的SVG图标
+                let iconId = 'icon-fish'; // 默认
+                if (fishDef.id === 'koi') iconId = 'icon-fish-koi';
+                else if (fishDef.id === 'puffer') iconId = 'icon-fish-puffer';
+                else if (fishDef.id === 'shark') iconId = 'icon-fish-shark';
+                
+                elements.rodHook.innerHTML = `<svg class="icon icon--hook"><use href="#${iconId}"></use></svg>`;
+            }
+            
+            // 应用背景
+            const bgDef = CosmeticDefinitions.backgrounds.find(b => b.id === background);
+            if (bgDef) {
+                elements.body.style.background = bgDef.gradient;
+            }
+        },
+
+        /**
+         * 选择外观
+         * 功能说明:
+         * 1. 更新游戏状态中的选中项
+         * 2. 立即更新DOM中所有卡片的selected类 (实时反馈)
+         * 3. 应用外观到游戏
+         * 4. 保存到localStorage
+         */
+        select(category, id) {
+            // 更新游戏状态
+            if (category === 'catColor') {
+                GameState.cosmetics.selected.catColor = id;
+            } else if (category === 'rodStyle') {
+                GameState.cosmetics.selected.rodStyle = id;
+            } else if (category === 'fishIcon') {
+                GameState.cosmetics.selected.fishIcon = id;
+            } else if (category === 'background') {
+                GameState.cosmetics.selected.background = id;
+            }
+            
+            // 实时更新DOM中的选中状态 (无需关闭面板)
+            // 找到同一类别下的所有卡片
+            const categoryCards = elements.cosmeticsList.querySelectorAll(
+                `[data-category="${category}"]`
+            );
+            
+            // 移除所有卡片的selected类
+            categoryCards.forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 为当前选中的卡片添加selected类
+            const selectedCard = elements.cosmeticsList.querySelector(
+                `[data-category="${category}"][data-id="${id}"]`
+            );
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+            
+            // 应用外观并保存
+            this.applyCosmetics();
+            GameManager.saveGame();
+        },
+
+        /**
+         * 渲染外观面板
+         */
+        renderPanel() {
+            elements.cosmeticsList.innerHTML = '';
+            
+            // 猫咪颜色
+            const catSection = this.createCosmeticSection('猫咪颜色', 'catColor', CosmeticDefinitions.catColors);
+            elements.cosmeticsList.appendChild(catSection);
+            
+            // 鱼竿样式
+            const rodSection = this.createCosmeticSection('鱼竿样式', 'rodStyle', CosmeticDefinitions.rodStyles);
+            elements.cosmeticsList.appendChild(rodSection);
+            
+            // 鱼图标
+            const fishSection = this.createCosmeticSection('鱼图标', 'fishIcon', CosmeticDefinitions.fishIcons);
+            elements.cosmeticsList.appendChild(fishSection);
+            
+            // 背景
+            const bgSection = this.createCosmeticSection('背景', 'background', CosmeticDefinitions.backgrounds);
+            elements.cosmeticsList.appendChild(bgSection);
+        },
+
+        /**
+         * 创建外观分类区域
+         * 功能说明:
+         * - 为每个卡片添加data-category和data-id属性，用于实时更新选中状态
+         * - 统一图标大小和对齐方式
+         * - 为锁定项显示一致的锁图标
+         * - 为已解锁项添加点击事件处理
+         */
+        createCosmeticSection(title, category, items) {
+            const section = document.createElement('div');
+            section.className = 'cosmetic-section';
+            section.innerHTML = `<h3>${title}</h3>`;
+            const grid = document.createElement('div');
+            grid.className = 'cosmetic-grid';
+            
+            // 获取对应的解锁集合
+            const unlockedSet = category === 'catColor' ? 'catColors' : 
+                               category === 'rodStyle' ? 'rodStyles' :
+                               category === 'fishIcon' ? 'fishIcons' : 'backgrounds';
+            
+            items.forEach(item => {
+                const isUnlocked = GameState.cosmetics.unlocked[unlockedSet].has(item.id);
+                const isSelected = GameState.cosmetics.selected[category] === item.id;
+                const card = document.createElement('div');
+                
+                // 添加data属性以便实时更新选中状态
+                card.setAttribute('data-category', category);
+                card.setAttribute('data-id', item.id);
+                
+                card.className = `cosmetic-card ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+                
+                // 根据类别生成不同的预览内容
+                let previewContent = '';
+                if (category === 'catColor') {
+                    // 猫咪颜色：显示颜色圆圈
+                    previewContent = `<div class="cosmetic-preview" style="background: ${item.color};"></div>`;
+                } else if (category === 'fishIcon') {
+                    // 鱼图标：使用SVG图标
+                    let iconId = 'icon-fish'; // 默认
+                    if (item.id === 'koi') iconId = 'icon-fish-koi';
+                    else if (item.id === 'puffer') iconId = 'icon-fish-puffer';
+                    else if (item.id === 'shark') iconId = 'icon-fish-shark';
+                    previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#${iconId}"></use></svg></div>`;
+                } else if (category === 'rodStyle') {
+                    // 鱼竿样式：显示鱼竿图标
+                    previewContent = `<div class="cosmetic-icon"><svg class="icon icon--cosmetic"><use href="#icon-rod"></use></svg></div>`;
+                } else if (category === 'background') {
+                    // 背景：显示渐变预览
+                    previewContent = `<div class="cosmetic-preview-bg" style="background: ${item.gradient};"></div>`;
+                }
+                
+                const lockIconHtml = !isUnlocked 
+                    ? '<div class="lock-icon"><svg class="icon icon--lock"><use href="#icon-lock"></use></svg></div>'
+                    : '';
+                card.innerHTML = `
+                    ${previewContent}
+                    <div class="cosmetic-name">${item.name}</div>
+                    ${lockIconHtml}
+                    ${!isUnlocked ? `<div class="cosmetic-requirement">${this.getRequirementText(item.requirement)}</div>` : ''}
+                `;
+                
+                // 只有解锁的项才能点击
+                if (isUnlocked) {
+                    card.addEventListener('click', () => this.select(category, item.id));
+                } else {
+                    // 锁定项显示提示但不可点击
+                    card.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // 可以在这里添加一个提示动画
+                        card.classList.add('shake');
+                        setTimeout(() => card.classList.remove('shake'), 500);
+                    });
+                }
+                
+                grid.appendChild(card);
+            });
+            
+            section.appendChild(grid);
+            return section;
+        },
+
+        /**
+         * 获取解锁条件文本
+         */
+        getRequirementText(requirement) {
+            if (requirement.type === 'default') return '初始可用';
+            if (requirement.type === 'totalFish') return `累计 ${requirement.value.toLocaleString()} 条鱼`;
+            if (requirement.type === 'upgradeLevel') {
+                const upgradeName = GameState.upgrades[requirement.upgrade].name;
+                return `${upgradeName} Lv${requirement.value}`;
+            }
+            if (requirement.type === 'achievement') return `累计 ${requirement.value.toLocaleString()} 条鱼`;
+            if (requirement.type === 'seaStars') return `获得 ${requirement.value} 颗海星`;
+            if (requirement.type === 'dpsMilestone') return `每秒 ${requirement.value} 条鱼`;
+            return '';
+        },
+
+        showPanel() {
+            this.renderPanel();
+            elements.cosmeticsPanel.style.display = 'block';
+        },
+
+        hidePanel() {
+            elements.cosmeticsPanel.style.display = 'none';
+        }
+    };
+
+    // ==================== DPS里程碑管理器 ====================
+    const MilestoneManager = {
+        /**
+         * 检查DPS里程碑
+         */
+        checkMilestones(dps) {
+            GameConfig.DPS_MILESTONES.forEach(threshold => {
+                if (!GameState.unlockedDpsMilestones.has(threshold) && dps >= threshold) {
+                    GameState.unlockedDpsMilestones.add(threshold);
+                    this.showBubble(threshold);
+                    CosmeticManager.checkUnlocks(); // 检查外观解锁
+                }
+            });
+        },
+
+        /**
+         * 显示里程碑弹窗
+         */
+        showBubble(threshold) {
+            const bubble = document.createElement('div');
+            bubble.className = 'milestone-bubble';
+            bubble.textContent = `猫猫现在每秒能钓到 ${threshold.toLocaleString()} 条鱼啦！`;
+            
+            elements.milestoneBubbles.appendChild(bubble);
+            
+            // 动画
+            requestAnimationFrame(() => {
+                bubble.classList.add('show');
+            });
+            
+            // 3秒后移除
+            setTimeout(() => {
+                bubble.classList.remove('show');
+                setTimeout(() => {
+                    if (bubble.parentNode) {
+                        bubble.parentNode.removeChild(bubble);
+                    }
+                }, 500);
+            }, 2500);
         }
     };
 
@@ -475,8 +907,13 @@
             UIRenderer.updateFishPerClick(false);
             UIRenderer.updateFishPerSecond();
             UIRenderer.updatePrestigeBonus();
+            UIRenderer.updateSeaStars();
             UIRenderer.renderUpgrades();
             UIRenderer.updateMuteButton();
+            
+            // 应用外观
+            CosmeticManager.checkUnlocks();
+            CosmeticManager.applyCosmetics();
             
             // 检查转生按钮显示
             this.updatePrestigeButton();
@@ -516,8 +953,24 @@
                 AchievementManager.hidePanel();
             });
             
+            elements.cosmeticsBtn.addEventListener('click', () => {
+                CosmeticManager.showPanel();
+            });
+            
+            elements.closeCosmetics.addEventListener('click', () => {
+                CosmeticManager.hidePanel();
+            });
+            
             elements.prestigeBtn.addEventListener('click', () => {
+                this.openPrestigeModal();
+            });
+            
+            elements.prestigeConfirm.addEventListener('click', () => {
                 this.performPrestige();
+            });
+            
+            elements.prestigeCancel.addEventListener('click', () => {
+                this.closePrestigeModal();
             });
 
             window.addEventListener('beforeunload', () => {
@@ -557,17 +1010,20 @@
                 const critMultiplier = GameState.upgrades.luckyFish.getCritMultiplier(
                     GameState.upgrades.luckyFish.level
                 );
-                baseGain = Math.floor(baseGain * critMultiplier);
+                baseGain = baseGain * critMultiplier;
                 SoundManager.playCritSound();
             } else {
                 SoundManager.playClickSound();
             }
 
-            GameState.fish += baseGain;
-            GameState.totalFishEarned += baseGain;
+            // 转换为整数后加到总数（确保所有获得的鱼都是整数）
+            const actualGain = Math.floor(baseGain);
+            GameState.fish += actualGain;
+            GameState.totalFishEarned += actualGain;
 
-            // 检查成就
+            // 检查成就和外观解锁
             AchievementManager.checkAchievements();
+            CosmeticManager.checkUnlocks();
 
             const rect = elements.cat.getBoundingClientRect();
             const clickX = (e.clientX || e.touches?.[0]?.clientX || rect.left + rect.width / 2);
@@ -652,10 +1108,12 @@
                     GameState.fish += gained;
                     GameState.totalFishEarned += gained;
                     
-                    // 检查成就
-                    AchievementManager.checkAchievements();
+            // 检查成就和外观解锁
+            AchievementManager.checkAchievements();
+            CosmeticManager.checkUnlocks();
                     
                     UIRenderer.updateFishCount();
+                    UIRenderer.updateFishPerSecond(); // 这会触发DPS里程碑检查
                     UIRenderer.renderUpgrades();
                     this.updatePrestigeButton();
                 }
@@ -668,12 +1126,33 @@
         updatePrestigeButton() {
             if (GameState.fish >= GameConfig.PRESTIGE_FISH_REQUIREMENT) {
                 elements.prestigeBtn.style.display = 'block';
-                const prestigeLevel = GameState.prestigeLevel;
-                const nextBonus = (prestigeLevel + 1) * GameConfig.PRESTIGE_BONUS_PER_LEVEL * 100;
-                elements.prestigeBtn.textContent = `🔄 转生 (获得 +${nextBonus.toFixed(1)}% 永久加成)`;
             } else {
                 elements.prestigeBtn.style.display = 'none';
             }
+        },
+        
+        /**
+         * 打开转生确认模态框
+         */
+        openPrestigeModal() {
+            if (GameState.fish < GameConfig.PRESTIGE_FISH_REQUIREMENT) {
+                return;
+            }
+            
+            // 计算可获得的海星数量（基于当前累计鱼数）
+            // 海星数量 = 累计鱼数 / 转生要求（向下取整）
+            const totalStarsFromEarned = Math.floor(GameState.totalFishEarned / GameConfig.PRESTIGE_FISH_REQUIREMENT);
+            const newStars = totalStarsFromEarned - GameState.seaStars;
+            
+            elements.prestigeModalStars.textContent = newStars;
+            elements.prestigeModal.style.display = 'flex';
+        },
+        
+        /**
+         * 关闭转生确认模态框
+         */
+        closePrestigeModal() {
+            elements.prestigeModal.style.display = 'none';
         },
         
         /**
@@ -684,17 +1163,24 @@
                 return;
             }
             
-            if (!confirm(`确定要转生吗？\n\n你将失去所有鱼和升级，但获得 +${((GameState.prestigeLevel + 1) * GameConfig.PRESTIGE_BONUS_PER_LEVEL * 100).toFixed(1)}% 的永久加成！`)) {
+            // 计算可获得的海星数量（基于当前累计鱼数）
+            const totalStarsFromEarned = Math.floor(GameState.totalFishEarned / GameConfig.PRESTIGE_FISH_REQUIREMENT);
+            const newStars = totalStarsFromEarned - GameState.seaStars;
+            
+            if (newStars <= 0) {
+                this.closePrestigeModal();
                 return;
             }
             
-            // 增加转生等级和加成
-            GameState.prestigeLevel++;
-            GameState.prestigeBonus = GameState.prestigeLevel * GameConfig.PRESTIGE_BONUS_PER_LEVEL;
+            // 增加海星
+            GameState.seaStars += newStars;
             
-            // 重置游戏状态（保留成就和转生等级）
+            // 更新转生加成（基于海星数量）
+            GameState.prestigeBonus = GameState.seaStars * GameConfig.PRESTIGE_BONUS_PER_LEVEL;
+            
+            // 重置游戏状态（保留成就、海星和转生等级）
             GameState.fish = 0;
-            GameState.totalFishEarned = 0;
+            // 不清空totalFishEarned，保留累计数用于计算下次转生的海星
             
             Object.keys(GameState.upgrades).forEach(key => {
                 GameState.upgrades[key].level = 0;
@@ -709,13 +1195,20 @@
                 this.autoFishingInterval = null;
             }
             
+            // 关闭模态框
+            this.closePrestigeModal();
+            
             // 更新UI
             UIRenderer.updateFishCount(false);
             UIRenderer.updateFishPerClick(false);
             UIRenderer.updateFishPerSecond();
             UIRenderer.updatePrestigeBonus();
+            UIRenderer.updateSeaStars();
             UIRenderer.renderUpgrades();
             this.updatePrestigeButton();
+            
+            // 检查外观解锁
+            CosmeticManager.checkUnlocks();
             
             this.saveGame();
         },
@@ -728,8 +1221,11 @@
                     fishPerClick: GameState.fishPerClick,
                     prestigeLevel: GameState.prestigeLevel,
                     prestigeBonus: GameState.prestigeBonus,
+                    seaStars: GameState.seaStars,
                     upgrades: {},
                     unlockedAchievements: Array.from(GameState.unlockedAchievements),
+                    unlockedDpsMilestones: Array.from(GameState.unlockedDpsMilestones),
+                    cosmetics: GameState.cosmetics,
                     muted: GameState.muted
                 };
                 
@@ -756,8 +1252,24 @@
                     GameState.fishPerClick = data.fishPerClick || 1;
                     GameState.prestigeLevel = data.prestigeLevel || 0;
                     GameState.prestigeBonus = data.prestigeBonus || 0;
+                    GameState.seaStars = data.seaStars || 0;
                     GameState.unlockedAchievements = new Set(data.unlockedAchievements || []);
+                    GameState.unlockedDpsMilestones = new Set(data.unlockedDpsMilestones || []);
                     GameState.muted = data.muted || false;
+                    
+                    // 加载外观状态
+                    if (data.cosmetics) {
+                        if (data.cosmetics.selected) {
+                            GameState.cosmetics.selected = Object.assign({}, GameState.cosmetics.selected, data.cosmetics.selected);
+                        }
+                        if (data.cosmetics.unlocked) {
+                            Object.keys(data.cosmetics.unlocked).forEach(key => {
+                                if (data.cosmetics.unlocked[key] instanceof Array) {
+                                    GameState.cosmetics.unlocked[key] = new Set(data.cosmetics.unlocked[key]);
+                                }
+                            });
+                        }
+                    }
                     
                     // 加载升级状态
                     if (data.upgrades) {

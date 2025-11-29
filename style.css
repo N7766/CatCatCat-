@@ -5,6 +5,91 @@
     box-sizing: border-box;
 }
 
+/* SVG 图标通用样式 */
+.icon {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+}
+
+/* 状态栏图标 */
+.icon--stat {
+    width: 1.2em;
+    height: 1.2em;
+    margin-right: 0.4em;
+    vertical-align: -0.15em;
+}
+
+/* 标题图标 */
+.icon--title {
+    width: 1.3em;
+    height: 1.3em;
+    margin-right: 0.5em;
+    vertical-align: -0.2em;
+}
+
+/* 标签页图标 */
+.icon--tab {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+/* 静音按钮图标 */
+.icon--mute {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+/* 升级卡片图标 */
+.icon--upgrade {
+    width: 1.3em;
+    height: 1.3em;
+    margin-right: 0.4em;
+    vertical-align: -0.2em;
+}
+
+/* 小图标（如货币） */
+.icon--small {
+    width: 1em;
+    height: 1em;
+    margin-right: 0.3em;
+    vertical-align: -0.1em;
+}
+
+/* 成就图标 */
+.icon--achievement {
+    width: 2em;
+    height: 2em;
+}
+
+/* 外观图标 */
+.icon--cosmetic {
+    width: 2em;
+    height: 2em;
+}
+
+/* 鱼钩图标 */
+.icon--hook {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+/* 鱼动画图标 */
+.icon--fish-animation {
+    width: 2em;
+    height: 2em;
+}
+
+/* 锁定图标 */
+.icon--lock {
+    width: 1em;
+    height: 1em;
+}
+
 :root {
     /* 柔和的 pastel 配色系统 */
     --color-primary: #FFB6C1;      /* 浅粉色 - 主色调 */
@@ -107,6 +192,8 @@ body {
     color: var(--color-text-light);
     letter-spacing: 0.3px;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
 }
 
 /* 统计数据数值 - 添加数字变化的动画效果 */
@@ -503,6 +590,8 @@ body {
     color: var(--color-text);
     letter-spacing: -0.5px;
     margin: 0;
+    display: flex;
+    align-items: center;
 }
 
 .achievements-btn {
@@ -584,6 +673,8 @@ body {
     font-weight: var(--font-weight-bold);
     color: var(--color-text);
     margin: 0;
+    display: flex;
+    align-items: center;
 }
 
 .close-btn {
@@ -745,6 +836,8 @@ body {
     margin-bottom: var(--spacing-xs);
     color: var(--color-text);
     letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
 }
 
 /* 升级描述 - 次要文本样式 */
@@ -761,6 +854,8 @@ body {
     font-weight: var(--font-weight-semibold);
     color: var(--color-accent);
     margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
 }
 
 /* 升级等级 - 小号文本 */
@@ -913,5 +1008,418 @@ body {
 
 .shop::-webkit-scrollbar-thumb:hover {
     background: #FF91A4;
+}
+
+/* 商店按钮组 */
+.shop-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.shop-tab-btn {
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop-tab-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+/* 外观面板 */
+.cosmetics-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.cosmetic-section {
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 182, 193, 0.2);
+}
+
+.cosmetic-section:last-child {
+    border-bottom: none;
+}
+
+.cosmetic-section h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-md);
+}
+
+.cosmetic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+/* 外观卡片 - 基础样式 */
+.cosmetic-card {
+    background: linear-gradient(135deg, rgba(176, 224, 230, 0.3) 0%, rgba(255, 182, 193, 0.3) 100%);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    overflow: hidden;
+}
+
+/* 悬停效果 - 仅对未锁定项生效 */
+.cosmetic-card:hover:not(.locked) {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-dark);
+    background: linear-gradient(135deg, rgba(176, 224, 230, 0.5) 0%, rgba(255, 182, 193, 0.5) 100%);
+}
+
+/* 选中状态 - 增强的视觉反馈 */
+.cosmetic-card.selected {
+    border: 3px solid var(--color-accent-gold);
+    box-shadow: 
+        0 0 15px rgba(255, 215, 0, 0.6),
+        0 4px 12px rgba(255, 182, 193, 0.4),
+        var(--shadow-md);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 182, 193, 0.5) 100%);
+    transform: scale(1.05);
+    animation: selectedPulse 2s ease-in-out infinite;
+}
+
+/* 选中状态的呼吸动画 */
+@keyframes selectedPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px rgba(255, 215, 0, 0.6),
+            0 4px 12px rgba(255, 182, 193, 0.4),
+            var(--shadow-md);
+    }
+    50% {
+        box-shadow: 
+            0 0 20px rgba(255, 215, 0, 0.8),
+            0 4px 16px rgba(255, 182, 193, 0.5),
+            var(--shadow-lg);
+    }
+}
+
+/* 锁定状态 - 统一的视觉样式 */
+.cosmetic-card.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, var(--color-border) 0%, var(--color-disabled) 100%);
+    border-color: var(--color-border);
+    position: relative;
+}
+
+/* 锁定项悬停时不显示交互效果 */
+.cosmetic-card.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--color-border);
+}
+
+/* 锁定项点击时的抖动提示 */
+.cosmetic-card.locked.shake {
+    animation: shakeLocked 0.5s ease-in-out;
+}
+
+@keyframes shakeLocked {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+    20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+/* 预览圆圈 - 统一尺寸 */
+.cosmetic-preview {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 182, 193, 0.5);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-xs);
+}
+
+/* 背景渐变预览 */
+.cosmetic-preview-bg {
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-xs);
+}
+
+/* 图标 - 统一大小和对齐 */
+.cosmetic-icon {
+    font-size: 36px;
+    line-height: 1;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* 名称文本 */
+.cosmetic-name {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* 锁定图标 - 统一位置和样式 */
+.lock-icon {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    z-index: 10;
+    opacity: 0.8;
+}
+
+/* 解锁条件文本 */
+.cosmetic-requirement {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-light);
+    margin-top: auto;
+    text-align: center;
+    line-height: 1.3;
+    padding-top: var(--spacing-xs);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+/* 猫咪颜色样式 */
+.cat-pink .cat-head {
+    background: #FFB6C1;
+}
+
+.cat-blue .cat-head {
+    background: #87CEEB;
+}
+
+.cat-orange .cat-head {
+    background: #FFA500;
+}
+
+.cat-purple .cat-head {
+    background: #DA70D6;
+}
+
+.cat-pink .cat-ear-left,
+.cat-pink .cat-ear-right {
+    border-bottom-color: #FFB6C1;
+}
+
+.cat-blue .cat-ear-left,
+.cat-blue .cat-ear-right {
+    border-bottom-color: #87CEEB;
+}
+
+.cat-orange .cat-ear-left,
+.cat-orange .cat-ear-right {
+    border-bottom-color: #FFA500;
+}
+
+.cat-purple .cat-ear-left,
+.cat-purple .cat-ear-right {
+    border-bottom-color: #DA70D6;
+}
+
+/* 鱼竿样式 */
+.rod-golden .rod-line {
+    background: linear-gradient(to bottom, #FFD700, #FFA500);
+}
+
+.rod-bamboo .rod-line {
+    background: linear-gradient(to bottom, #9ACD32, #6B8E23);
+    width: 4px;
+}
+
+.rod-crystal .rod-line {
+    background: linear-gradient(to bottom, #E0E0E0, #C0C0C0);
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+}
+
+/* 模态框 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10001;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: var(--color-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-xl);
+    border: 2px solid rgba(255, 182, 193, 0.3);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin-bottom: var(--spacing-lg);
+}
+
+.modal-text {
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.8;
+}
+
+.modal-text p {
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text);
+}
+
+.modal-text strong {
+    color: var(--color-accent-gold);
+    font-size: var(--font-size-lg);
+}
+
+.modal-warning {
+    color: #FF6B6B;
+    font-weight: var(--font-weight-bold);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 120px;
+}
+
+.confirm-btn {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    background: linear-gradient(135deg, #FF5252 0%, #FF6B6B 100%);
+}
+
+.cancel-btn {
+    background: var(--color-secondary);
+    color: var(--color-text);
+    box-shadow: var(--shadow-sm);
+}
+
+.cancel-btn:hover {
+    background: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+/* 里程碑弹窗 */
+.milestone-bubbles {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.milestone-bubble {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 182, 193, 0.95) 100%);
+    color: var(--color-text);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    box-shadow: var(--shadow-lg);
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    margin-bottom: var(--spacing-md);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.milestone-bubble.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes milestonePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* 响应式：移动端外观面板 */
+@media (max-width: 768px) {
+    .cosmetic-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+    
+    .modal-content {
+        padding: var(--spacing-lg);
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-btn {
+        width: 100%;
+    }
+    
+    .milestone-bubble {
+        font-size: var(--font-size-base);
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
 }
 

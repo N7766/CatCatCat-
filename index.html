@@ -12,23 +12,44 @@
         <header class="header">
             <div class="stats">
                 <div class="stat-item">
-                    <span class="stat-label">🐟 鱼鱼数量</span>
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-fish"></use></svg>
+                        鱼鱼数量
+                    </span>
                     <span id="fish-count" class="stat-value">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">🎣 每次点击</span>
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-click"></use></svg>
+                        每次点击
+                    </span>
                     <span id="fish-per-click" class="stat-value">1</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">⚡ 每秒获得</span>
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-bolt"></use></svg>
+                        每秒获得
+                    </span>
                     <span id="fish-per-second" class="stat-value">0</span>
                 </div>
                 <div class="stat-item" id="prestige-bonus-item" style="display: none;">
-                    <span class="stat-label">✨ 转生加成</span>
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-sparkle"></use></svg>
+                        转生加成
+                    </span>
                     <span id="prestige-bonus" class="stat-value">+0%</span>
                 </div>
+                <div class="stat-item" id="sea-stars-item" style="display: none;">
+                    <span class="stat-label">
+                        <svg class="icon icon--stat"><use href="#icon-star"></use></svg>
+                        海星
+                    </span>
+                    <span id="sea-stars" class="stat-value">0</span>
+                </div>
             </div>
-            <button id="mute-btn" class="mute-btn" aria-label="静音/取消静音">🔊</button>
+            <button id="mute-btn" class="mute-btn" aria-label="静音/取消静音">
+                <svg class="icon icon--mute"><use href="#icon-volume"></use></svg>
+            </button>
         </header>
 
         <!-- 主游戏区域 -->
@@ -48,7 +69,9 @@
                     </div>
                     <div class="fishing-rod" id="fishing-rod">
                         <div class="rod-line"></div>
-                        <div class="rod-hook" id="rod-hook">🐟</div>
+                        <div class="rod-hook" id="rod-hook">
+                            <svg class="icon icon--hook"><use href="#icon-fish"></use></svg>
+                        </div>
                     </div>
                 </div>
                 <div class="cat-hint">点击猫咪开始钓鱼吧！🐱</div>
@@ -63,28 +86,208 @@
         <!-- 升级商店 -->
         <aside class="shop">
             <div class="shop-header">
-                <h2 class="shop-title">🛒 喵喵商店</h2>
-                <button id="achievements-btn" class="achievements-btn" title="查看成就">🏆</button>
+                <h2 class="shop-title">
+                    <svg class="icon icon--title"><use href="#icon-cart"></use></svg>
+                    喵喵商店
+                </h2>
+                <div class="shop-buttons">
+                    <button id="cosmetics-btn" class="shop-tab-btn" title="查看外观">
+                        <svg class="icon icon--tab"><use href="#icon-palette"></use></svg>
+                    </button>
+                    <button id="achievements-btn" class="shop-tab-btn" title="查看成就">
+                        <svg class="icon icon--tab"><use href="#icon-trophy"></use></svg>
+                    </button>
+                </div>
             </div>
             <div id="upgrades-list" class="upgrades-list">
                 <!-- 升级项将通过 JavaScript 动态生成 -->
             </div>
             <div class="reset-section">
-                <button id="prestige-btn" class="prestige-btn" style="display: none;">🔄 转生</button>
+                <button id="prestige-btn" class="prestige-btn" style="display: none;">和猫猫一起出远海！</button>
             </div>
         </aside>
 
         <!-- 成就面板 -->
         <div id="achievements-panel" class="achievements-panel" style="display: none;">
             <div class="achievements-header">
-                <h2>🏆 里程碑成就</h2>
+                <h2>
+                    <svg class="icon icon--title"><use href="#icon-trophy"></use></svg>
+                    里程碑成就
+                </h2>
                 <button id="close-achievements" class="close-btn">✕</button>
             </div>
             <div id="achievements-list" class="achievements-list">
                 <!-- 成就项将通过 JavaScript 动态生成 -->
             </div>
         </div>
+
+        <!-- 外观面板 -->
+        <div id="cosmetics-panel" class="achievements-panel" style="display: none;">
+            <div class="achievements-header">
+                <h2>
+                    <svg class="icon icon--title"><use href="#icon-palette"></use></svg>
+                    外观定制
+                </h2>
+                <button id="close-cosmetics" class="close-btn">✕</button>
+            </div>
+            <div id="cosmetics-list" class="cosmetics-list">
+                <!-- 外观项将通过 JavaScript 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 转生确认模态框 -->
+        <div id="prestige-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <h2>和猫猫一起出远海！</h2>
+                <div class="modal-text">
+                    <p>确定要转生吗？</p>
+                    <p>你将失去所有鱼和升级，但获得 <strong id="prestige-modal-stars">0</strong> 颗海星！</p>
+                    <p>每颗海星永久增加 <strong>+5%</strong> 所有收益。</p>
+                    <p class="modal-warning">⚠️ 此操作不可撤销</p>
+                </div>
+                <div class="modal-buttons">
+                    <button id="prestige-confirm" class="modal-btn confirm-btn">确认转生</button>
+                    <button id="prestige-cancel" class="modal-btn cancel-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 里程碑弹窗容器 -->
+        <div id="milestone-bubbles" class="milestone-bubbles"></div>
     </div>
+
+    <!-- SVG Icon Sprite -->
+    <svg style="display: none;" aria-hidden="true">
+        <!-- 鱼竿图标 - 强化鱼竿 -->
+        <symbol id="icon-rod" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 5l6 6M6 3l8 8"/>
+            <circle cx="18" cy="17" r="2.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="16" cy="15" r="1" fill="currentColor"/>
+        </symbol>
+        
+        <!-- 机器人图标 - 自动钓鱼助手 -->
+        <symbol id="icon-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="8" width="14" height="12" rx="2.5"/>
+            <path d="M9 13h6M9 17h6" stroke-width="2.5"/>
+            <circle cx="9.5" cy="15" r="1.5" fill="currentColor"/>
+            <circle cx="14.5" cy="15" r="1.5" fill="currentColor"/>
+            <path d="M8 10V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3" stroke-width="2"/>
+            <circle cx="12" cy="5" r="1" fill="currentColor"/>
+        </symbol>
+        
+        <!-- 四叶草图标 - 幸运小鱼干 -->
+        <symbol id="icon-clover" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.2"/>
+            <circle cx="12" cy="8" r="2.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="8" cy="12" r="2.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="16" cy="12" r="2.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="12" cy="16" r="2.5" fill="currentColor" opacity="0.8"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        </symbol>
+        
+        <!-- 鱼图标 - 通用 -->
+        <symbol id="icon-fish" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 12c-2-2-2-4 0-6s4-2 6 0 4 2 6 0 2-4 0-6-4-2-6 0-4-2-6 0-2 4 0 6"/>
+            <path d="M12 8v8M10 10h4"/>
+            <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+        </symbol>
+        
+        <!-- 锦鲤鱼图标 -->
+        <symbol id="icon-fish-koi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 12c-2-2-2-4 0-6s4-2 6 0 4 2 6 0 2-4 0-6-4-2-6 0-4-2-6 0-2 4 0 6"/>
+            <path d="M12 8v8M10 10h4"/>
+            <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+            <circle cx="10" cy="10" r="1" fill="currentColor" opacity="0.6"/>
+            <circle cx="14" cy="12" r="0.8" fill="currentColor" opacity="0.6"/>
+        </symbol>
+        
+        <!-- 河豚图标 -->
+        <symbol id="icon-fish-puffer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8"/>
+            <circle cx="12" cy="12" r="5" fill="currentColor" opacity="0.3"/>
+            <circle cx="9" cy="10" r="1" fill="currentColor"/>
+            <circle cx="15" cy="10" r="1" fill="currentColor"/>
+            <path d="M12 14c-1 0-2-0.5-2-1.5s1-1.5 2-1.5 2 0.5 2 1.5-1 1.5-2 1.5z"/>
+        </symbol>
+        
+        <!-- 鲨鱼图标 -->
+        <symbol id="icon-fish-shark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12c0-3 2-5 5-5s5 2 5 5M9 7v10M15 12c0 3-2 5-5 5s-5-2-5-5"/>
+            <path d="M7 10h6M8 14h4"/>
+            <path d="M18 8l2 4-2 4" opacity="0.5"/>
+        </symbol>
+        
+        <!-- 点击/手指图标 - 每次点击 -->
+        <symbol id="icon-click" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v8M10 8l2-2 2 2"/>
+            <path d="M8 12h8M6 16h12M4 20h16" opacity="0.5"/>
+        </symbol>
+        
+        <!-- 闪电图标 - 每秒获得 -->
+        <symbol id="icon-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </symbol>
+        
+        <!-- 购物车图标 -->
+        <symbol id="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </symbol>
+        
+        <!-- 调色板图标 - 外观 -->
+        <symbol id="icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+            <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+            <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+            <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+        </symbol>
+        
+        <!-- 奖杯图标 - 成就 -->
+        <symbol id="icon-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2"/>
+            <path d="M18 9h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/>
+            <path d="M4 13h16"/>
+            <path d="M10 9v8a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9"/>
+            <path d="M7 5v4M17 5v4"/>
+        </symbol>
+        
+        <!-- 硬币图标 - 货币 -->
+        <symbol id="icon-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v12M6 12h12" opacity="0.5"/>
+        </symbol>
+        
+        <!-- 锁定图标 -->
+        <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="10" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </symbol>
+        
+        <!-- 海星图标 -->
+        <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </symbol>
+        
+        <!-- 闪光图标 - 转生加成 -->
+        <symbol id="icon-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            <path d="M6.34 6.34l2.83 2.83M14.83 14.83l2.83 2.83M6.34 17.66l2.83-2.83M14.83 5.17l2.83-2.83" opacity="0.6"/>
+        </symbol>
+        
+        <!-- 静音/音量图标 -->
+        <symbol id="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </symbol>
+        
+        <!-- 静音图标 -->
+        <symbol id="icon-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            <path d="M23 9l-6 6M17 9l6 6"/>
+        </symbol>
+    </svg>
 
     <script src="script.js"></script>
 </body>
